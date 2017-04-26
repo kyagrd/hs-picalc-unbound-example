@@ -33,6 +33,7 @@ data Pr
   | Out NamePr NamePr (Bind NamePr Pr)
   | Nu (Bind NamePr Pr)
   | Bang Pr
+  | Match NamePr NamePr Pr
   | Null
   deriving Show
 
