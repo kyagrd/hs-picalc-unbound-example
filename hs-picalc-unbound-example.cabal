@@ -26,6 +26,7 @@ executable hs-picalc-unbound-example-exe
   build-depends:       base
                      , hs-picalc-unbound-example
                      , unbound
+                     , transformers
   default-language:    Haskell2010
 
 test-suite hs-picalc-unbound-example-test
