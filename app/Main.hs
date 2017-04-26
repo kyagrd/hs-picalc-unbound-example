@@ -7,7 +7,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
-import           Lib
+import qualified Lib
 
 import           Control.Applicative
 import           Control.Monad
@@ -28,12 +28,15 @@ type NamePr = Name Pr
 
 data Pr
   = Var NamePr
+  | Null
+  | TauP Pr
   | In NamePr (Bind NamePr Pr)
   | Out NamePr NamePr (Bind NamePr Pr)
   | Nu (Bind NamePr Pr)
   | Bang Pr
+  | Par Pr Pr
+  | Plus Pr Pr
   | Match NamePr NamePr Pr
-  | Null
   deriving Show
 
 instance Eq Pr where (==) = aeq
@@ -50,7 +53,14 @@ instance Subst Pr Pr where
 -- instance Hashable NamePr where
 --   hashWithSalt s n = hashWithSalt s (name2String n, name2Integer n)
 
+x, y :: NamePr
+x = s2n "x"
+y = s2n "y"
+
+p1 = TauP Null `Plus` TauP (TauP Null)
+q1 = TauP (Match x y (TauP Null))
+
 
 
 main :: IO ()
-main = someFunc
+main = print "hello" -- Lib.main

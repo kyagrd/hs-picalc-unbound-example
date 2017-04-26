@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Lib
-    ( someFunc
+    ( main
     ) where
 
 import           Control.Monad                     (unless)
@@ -115,6 +115,3 @@ main = do
   print nmap
   print g
   GV.preview g
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
