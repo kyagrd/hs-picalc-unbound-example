@@ -24,7 +24,6 @@ import qualified Unbound.LocallyNameless          as LN
 {-# ANN module "HLint: ignore Use mappend" #-}
 
 
-
 type NamePr = Name Pr
 
 data Pr
