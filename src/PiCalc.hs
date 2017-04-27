@@ -161,5 +161,3 @@ one (par P Q) tau (nu y\ par (M y) (N y)) :- oneb P (up X) M , oneb Q (dn X) N.
 one (par P Q) tau (par (M Y) T) :-  oneb P (dn X) M, one Q (up X Y) T.
 one (par P Q) tau (par R (M Y)) :-  oneb Q (dn X) M, one P (up X Y) R.
 -}
-
-

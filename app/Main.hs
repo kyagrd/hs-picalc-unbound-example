@@ -8,6 +8,7 @@
 module Main where
 
 import           PiCalc
+import           SubstLatt               (someFunc)
 import           Unbound.LocallyNameless
 
 {-# ANN module "HLint: ignore Use fmap" #-}
@@ -35,6 +36,9 @@ main = do
   putStrLn $ "one step from: " ++ show p2
   mapM_ print (runFreshMT (one p2) :: [(Act,Pr)])
   putStrLn "================================================================"
+
+
+
 {-
 *Main Lib> :t runFreshMT (one p1)
 runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)
