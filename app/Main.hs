@@ -1,25 +1,14 @@
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE FlexibleInstances         #-}
-{-# LANGUAGE MultiParamTypeClasses     #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
+-- {-# LANGUAGE FlexibleContexts          #-}
+-- {-# LANGUAGE FlexibleInstances         #-}
+-- {-# LANGUAGE MultiParamTypeClasses     #-}
+-- {-# LANGUAGE NoMonomorphismRestriction #-}
+-- {-# LANGUAGE ScopedTypeVariables       #-}
 -- {-# LANGUAGE TemplateHaskell           #-}
-{-# LANGUAGE UndecidableInstances      #-}
+-- {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
-import           Lib
-
-import           Control.Applicative
-import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.State.Strict
--- import           Data.Hashable
--- import qualified Data.HashMap.Strict              as Map
-import           Data.Maybe
--- import           Unbound.LocallyNameless          hiding (empty, fresh, join)
--- import qualified Unbound.LocallyNameless          as LN
-import           Unbound.LocallyNameless          hiding (empty)
+import           PiCalc
+import           Unbound.LocallyNameless
 
 {-# ANN module "HLint: ignore Use fmap" #-}
 {-# ANN module "HLint: ignore Use mappend" #-}

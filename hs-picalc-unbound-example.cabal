@@ -15,12 +15,12 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
+  exposed-modules:     PiCalc SubstLatt
   build-depends:       base >= 4.7 && < 5
                      , containers
-                     -- , fgl
-                     -- , graphviz
-                     -- , data-partition
+                     , fgl
+                     , graphviz
+                     , data-partition
                      , transformers
                      , unbound
   default-language:    Haskell2010
