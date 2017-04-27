@@ -53,4 +53,6 @@ runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)
 [(Tau,Null),(Tau,TauP Null)]
 *Main Lib> runFreshMT (one q1) :: [(Act,Pr)]
 [(Tau,Match (Var x) (Var y) (TauP Null))]
+*Main Lib> runFreshMT (one p2) :: [(Act,Pr)]
+[(Up (Var x) (Var y),Par (In (Var x) (bind z(Out (Var x) (Var 0@0) Null))) Null),(Tau,Par (Out (Var x) (Var y) Null) Null)]
 -}
