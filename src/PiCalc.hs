@@ -110,7 +110,6 @@ oneb (Nu b)
         (l,b') <- oneb p
         (y,p') <- unbind b'
         return (l, bind y $ Nu (bind x p')) -- restriction
-     -- open
  <|> do (x,p) <- unbind b
         (l,p') <- one p
         case l of Up y x' | Var x == x' -> return (UpB y, bind x p')  -- open
