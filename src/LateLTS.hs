@@ -7,14 +7,9 @@
 module LateLTS where
 
 import           Control.Applicative
-import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.State.Strict
-import           Data.Maybe
-import           PiCalc                           hiding (one, oneb)
-import           Unbound.LocallyNameless          hiding (empty, fresh, join)
-import qualified Unbound.LocallyNameless          as LN
+import           PiCalc
+import           Unbound.LocallyNameless hiding (bind, empty, fresh, join,rep)
+import qualified Unbound.LocallyNameless as LN
 
 
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -34,33 +29,29 @@ one (Par p q)
         (lq, bq) <- oneb q
         case (lp, lq) of
           (DnB x, UpB y) | x == y
-                         -> do (w, p') <- unbind bp
-                               (v, q') <- unbind bq
-                               let p'' = subst w (Var v) p'
-                               return (Tau, Nu (bind v $ Par p'' q')) -- close
+            -> do (w, p') <- unbind bp
+                  (v, q') <- unbind bq
+                  return (Tau, Nu(v.\Par (subst w (Var v) p') q')) -- close
           (UpB x, DnB y) | x == y
-                         -> do (v, p') <- unbind bp
-                               (w, q') <- unbind bq
-                               let q'' = subst w (Var v) q'
-                               return (Tau, Nu (bind v $ Par p' q'')) -- close
-          _              -> empty
+            -> do (v, p') <- unbind bp
+                  (w, q') <- unbind bq
+                  return (Tau, Nu(v.\Par p' (subst w (Var v) q'))) -- close
+          _ -> empty
  <|> do (lp, bp) <- oneb p
         (lq, q') <- one q
         case (lp, lq) of
           (DnB x, Up y v) | x == y
-                          -> do (w, p') <- unbind bp
-                                return (Tau, Par (subst w v p') q') -- comm
-          _               -> empty
+            -> do (w, p') <- unbind bp
+                  return (Tau, Par (subst w v p') q') -- comm
+          _ -> empty
  <|> do (lp, p') <- one p
         (lq, bq) <- oneb q
         case (lp, lq) of
           (Up y v, DnB x) | x == y
-                          -> do (w, q') <- unbind bq
-                                return (Tau, Par p' (subst w v q')) -- comm
-          _               -> empty
-one (Nu b) = do (x,p) <- unbind b
-                (l,p') <- one p
-                return (l, Nu (bind x p'))
+            -> do (w, q') <- unbind bq
+                  return (Tau, Par p' (subst w v q')) -- comm
+          _ -> empty
+one (Nu b) = do { (x,p) <- unbind b; (l,p') <- one p; return (l, Nu (x.\p')) }
 one _ = empty
 
 
@@ -68,16 +59,16 @@ oneb (In x p)      = return (DnB x, p)
 oneb (Match x y p) | x == y = oneb p
 oneb (Plus p q)    = oneb p <|> oneb q
 oneb (Par p q)
-   = do { (l,b') <- oneb p; (x,p') <- unbind b'; return (l, bind x $ Par p' q) }
- <|> do { (l,b') <- oneb q; (x,q') <- unbind b'; return (l, bind x $ Par p q') }
+   = do { (l,b') <- oneb p; (x,p') <- unbind b'; return (l, x.\Par p' q) }
+ <|> do { (l,b') <- oneb q; (x,q') <- unbind b'; return (l, x.\Par p q') }
 oneb (Nu b)
    = do (x,p) <- unbind b
         (l,b') <- oneb p
         (y,p') <- unbind b'
-        return (l, bind y $ Nu (bind x p')) -- restriction
+        return (l, y.\Nu (x.\p')) -- restriction
  <|> do (x,p) <- unbind b
         (l,p') <- one p
-        case l of Up y x' | Var x == x' -> return (UpB y, bind x p')  -- open
+        case l of Up y x' | Var x == x' -> return (UpB y, x.\p')  -- open
                   _       -> empty
 oneb _ = empty
 
