@@ -51,11 +51,9 @@ main = do
   putStrLn "================================================================"
   printLateOneFrom q1
   putStrLn "================================================================"
-  putStrLn $ "one step from: " ++ show q2
-  mapM_ print (runFreshMT (one q2) :: [(Act,Pr)])
+  printLateOneFrom q2
   putStrLn "================================================================"
-  putStrLn $ "one step from: " ++ show p2
-  mapM_ print (runFreshMT (one p2) :: [(Act,Pr)])
+  printLateOneFrom p2
   putStrLn "================================================================"
   putStrLn ""
   putStrLn "================================================================"
