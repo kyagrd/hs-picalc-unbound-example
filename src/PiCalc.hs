@@ -7,15 +7,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module PiCalc where
 
-import           Control.Applicative
--- import           Control.Monad                    (unless)
-import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.Maybe
-import           Control.Monad.Trans.State.Strict
-import           Data.Maybe
-import           Unbound.LocallyNameless          hiding (empty, fresh, join)
-import qualified Unbound.LocallyNameless          as LN
+import           Unbound.LocallyNameless
 
 
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -57,4 +49,3 @@ instance Subst Tm Pr where
 ---- if you are to define unification kind of thing with Hashmap
 -- instance Hashable NamePr where
 --   hashWithSalt s n = hashWithSalt s (name2String n, name2Integer n)
-
