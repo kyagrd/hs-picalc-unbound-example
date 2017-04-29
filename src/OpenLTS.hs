@@ -7,13 +7,16 @@
 module OpenLTS where
 
 import           Control.Applicative
+import           Control.Monad
 import           Data.List               (union)
 import qualified Data.Map.Strict         as Map
+import           Data.Maybe
 import           Data.Partition          hiding (empty)
 import qualified Data.Set                as Set
 import qualified LateLTS                 as L
 import           PiCalc
-import           Unbound.LocallyNameless (runFreshMT, subst, unbind)
+import           Unbound.LocallyNameless (Bind, Fresh, Subst, runFreshMT, subst,
+                                          unbind)
 import qualified Unbound.LocallyNameless as LN
 
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -31,13 +34,19 @@ q2n (Nab x) = x
 -- and they are in reversed order from what we usally write on paper
 -- as usual for contexts represented as lists
 -- that is, "forall x y z ..." would be [All z,All y,All x]
+
+-- type synonym for the collection of equlaity constraints over names
+type EqC = [(NameTm,NameTm)]
+
+one :: (Fresh m, Alternative m) => [Quan] -> Pr -> m (EqC,(Act,Pr))
 one nctx (Out x y p)   = return ([], (Up x y, p))
 one nctx (TauP p)      = return ([], (Tau, p))
 one nctx (Match (Var x) (Var y) p)
           | x == y    = one nctx p
           | otherwise = do (s, r) <- one nctx p
                            let s' = (x,y) .: s
-                           if s' `respects` nctx then return (s', r) else empty
+                           guard $ s' `respects` nctx
+                           return (s', r)
 one nctx (Plus p q) = one nctx p <|> one nctx q
 one nctx (Par p q)
    = do { (s,(l,p')) <- one nctx p; return (s,(l,Par p' q)) }
@@ -46,53 +55,41 @@ one nctx (Par p q)
         (sq,(lq,bq)) <- oneb nctx q
         case (lp, lq) of
           (DnB (Var x), UpB (Var y))
-            -> do (w, p') <- unbind bp
-                  (v, q') <- unbind bq
-                  let p'' = subst w (Var v) p'
+            -> do (v, q', p') <-  unbind2' bq bp
                   let s' = (x,y) .: sp .+ sq
-                  if s' `respects` nctx
-                    then return (s', (Tau, Nu(v.\Par p'' q'))) -- close
-                    else empty
+                  guard $ s' `respects` nctx
+                  return (s', (Tau, Nu(v.\Par p' q'))) -- close
           (UpB (Var x), DnB (Var y))
-            -> do (v, p') <- unbind bp
-                  (w, q') <- unbind bq
-                  let q'' = subst w (Var v) q'
+            -> do (v, p', q') <- unbind2' bp bq
                   let s' = (x,y) .: sp .+ sq
-                  if s' `respects` nctx
-                    then return (s', (Tau, Nu(v.\Par p' q''))) -- close
-                    else empty
+                  guard $ s' `respects` nctx
+                  return (s', (Tau, Nu(v.\Par p' q'))) -- close
           _ -> empty
- <|> do (sp,(lp,bp)) <- oneb nctx p
-        (sq,(lq,q')) <- one nctx q
-        case (lp, lq) of
-          (DnB (Var x), Up (Var y) v)
-            -> do (w, p') <- unbind bp
-                  let s' = (x,y) .: sp .+ sq
-                  if s' `respects` nctx
-                    then return (s', (Tau, Par (subst w v p') q')) -- comm
-                    else empty
-          _ -> empty
- <|> do (sp,(lp, p')) <- one nctx p
-        (sq,(lq, bq)) <- oneb nctx q
-        case (lp, lq) of
-          (Up (Var y) v, DnB (Var x))
-            -> do (w, q') <- unbind bq
-                  let s' = (x,y) .: sp .+ sq
-                  if s' `respects` nctx
-                    then return (s', (Tau, Par p' (subst w v q'))) -- comm
-                    else empty
-          _ -> empty
+ <|> do (sp, (DnB (Var x), bp)) <- oneb nctx p
+        (sq, (Up (Var y) v, q')) <- one nctx q
+        (w, p') <- unbind bp
+        let s' = (x,y) .: sp .+ sq
+        guard $ s' `respects` nctx
+        return (s', (Tau, Par (subst w v p') q')) -- comm
+ <|> do (sp, (Up (Var y) v, p')) <- one nctx p
+        (sq, (DnB (Var x), bq)) <- oneb nctx q
+        (w, q') <- unbind bq
+        let s' = (x,y) .: sp .+ sq
+        guard $ s' `respects` nctx
+        return (s', (Tau, Par p' (subst w v q'))) -- comm
 one nctx (Nu b) = do (x,p) <- unbind b
                      (s,(l,p')) <- one (Nab x : nctx) p
                      return (s, (l, Nu(x.\p')))
 one _    _ = empty
 
+oneb :: (Fresh m, Alternative m) => [Quan] -> Pr -> m (EqC,(ActB, Bind NameTm Pr))
 oneb nctx (In x p) = return ([], (DnB x, p))
 oneb nctx (Match (Var x) (Var y) p)
           | x == y    = oneb nctx p
           | otherwise = do (s, r) <- oneb nctx p
                            let s' = (x,y) .: s
-                           if s' `respects` nctx then return (s', r) else empty
+                           guard $ s' `respects` nctx
+                           return (s', r)
 oneb nctx (Plus p q) = oneb nctx p <|> oneb nctx q
 oneb nctx (Par p q)
    = do { (s,(l,b')) <- oneb nctx p; (x,p') <- unbind b'; return (s,(l, x.\Par p' q)) }
@@ -101,12 +98,11 @@ oneb nctx (Nu b)
    = do (x,p) <- unbind b
         (s,(l,b')) <- oneb (Nab x : nctx) p
         (y,p') <- unbind b'
-        return (s, (l,  y.\Nu(x.\p'))) -- restriction
+        return (s, (l, y.\Nu(x.\p'))) -- restriction
  <|> do (x,p) <- unbind b
-        (s,(l,p')) <- one (Nab x : nctx) p
-        case l of
-          Up y x' | Var x == x' -> return (s, (UpB y, x.\p')) -- open
-          _       -> empty
+        (s,(Up y (Var x'),p')) <- one (Nab x : nctx) p
+        guard $ x == x'
+        return (s, (UpB y, x.\p')) -- open
 oneb _    _ = empty
 
 -- just to remove duplication by simmetry when consing
@@ -116,6 +112,7 @@ oneb _    _ = empty
                                   GT -> (y,x):s
 (.+) = union
 
+respects :: EqC -> [Quan] -> Bool
 respects s nctx = all (\n -> rep partition n == n) nabixs
   where
     nabixs = [n2i x | Nab x <- nctx]
@@ -140,6 +137,7 @@ an attempt to unify a nabla varible with another variable introduced before.
 -}
 
 -- build substutition from nctx and equanity constraint list
+substitute :: Subst Tm b => [Quan] -> EqC -> b -> b
 substitute nctx s = foldr (.) id [subst x (Var y) | (x,y)<-s']
   where
     s' = [(i2n i, i2n $ rep partition i) | i<-[0..maxVal]] -- map to min val
@@ -152,15 +150,62 @@ substitute nctx s = foldr (.) id [subst x (Var y) | (x,y)<-s']
     n2iMap = Map.fromList $ zip revns [0..maxVal]
     maxVal = length revns - 1 :: Int
 
-type EqC a = [(a,a)]
 
-{- TODO
-sim nctx p q = and <$> do
-  (sp, r) <- one nctx p
-  let (lp,p') = substitute nctx sp r
-  (lq,q1) <- L.one (substitute nctx sp q) -- follow by late step
-  if lp==lq
-    then return True
-    else return False
-    if lp == lq then return True else return empty
--}
+
+-- (open) simulation and bisimulation
+-- I think this must be right but needs some test
+-- TODO make something that produce information other than just bool result
+-- which could be used for generating bisim graphs and distinguishing formulae
+
+sim nctx p q = (and :: [Bool] -> Bool) $
+  do (s, r) <- runFreshMT (one nctx p)
+     let (lp, p') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lq, q') <- L.one (substitute nctx s q) -- follow by late step
+       guard $ lp == lq
+       return $ sim nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx p)
+     let (lp, bp') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       return $ sim nctx' p' q'
+
+bisim nctx p q = (and :: [Bool] -> Bool) $
+  do (s, r) <- runFreshMT (one nctx p)
+     let (lp, p') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lq, q') <- L.one (substitute nctx s q) -- follow by late step
+       guard $ lp == lq
+       return $ sim nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx p)
+     let (lp, bp') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       return $ sim nctx' p' q'
+  <|>
+  do (s, r) <- runFreshMT (one nctx q)
+     let (lq, q') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lp, p') <- L.one (substitute nctx s p) -- follow by late step
+       guard $ lp == lq
+       return $ sim nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx q)
+     let (lq, bq') = substitute nctx s r
+     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+       (lp, bp') <- L.oneb (substitute nctx s p) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       return $ sim nctx' p' q'

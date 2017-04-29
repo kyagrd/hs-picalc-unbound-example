@@ -36,8 +36,8 @@ data Act  = Up Tm Tm | Dn Tm Tm | Tau deriving (Eq, Ord, Show)
 data ActB = UpB Tm   | DnB Tm         deriving (Eq, Ord, Show)
 
 instance Eq Pr where (==) = aeq
-instance Eq (Bind NameTm Pr) where (==) = liftBind2 (==)
-instance Ord (Bind NameTm Pr) where compare = liftBind2 compare
+instance Eq (Bind NameTm Pr) where (==) = aeqBinders
+instance Ord (Bind NameTm Pr) where compare = acompare
 
 liftBind2 op b1 b2 = runFreshM $ do
     (x1,p1) <- unbind b1
@@ -63,3 +63,8 @@ instance Subst Tm ActB where
 
 -- lambda-Prolog like infix bind notiation
 (.\) = bind
+
+
+
+-- assming there is exactly one NameTm binding for both
+unbind2' b1 b2 = do { Just (x,p1,_,p2) <- unbind2 b1 b2; return (x,p1,p2) }
