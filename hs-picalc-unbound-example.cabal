@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     PiCalc OpenLTS SubstLatt
+  exposed-modules:     PiCalc LateLTS OpenLTS SubstLatt
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , fgl

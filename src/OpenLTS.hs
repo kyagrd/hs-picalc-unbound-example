@@ -20,8 +20,8 @@ import qualified Unbound.LocallyNameless          as LN
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
 
--- TODO nabla -- for every x==y unif do nabla consistency check against nctx
--- TODO possible solution let one and oneb an additional function argument
+-- TOOD can nctx and unification constraint collection
+-- packaged as a set of monad transformer layers?
 
 data Quan = All NameTm | Nab NameTm deriving (Eq, Ord, Show)
 
@@ -43,15 +43,19 @@ one nctx (Par p q)
                   let p'' = subst w (Var v) p'
                   let s  = sp `union` sq
                       s' = if x==y then s else (x,y):s
-                  return (s', (Tau, Nu (bind v $ Par p'' q'))) -- close
+                  if s' `respects` nctx
+                    then return (s', (Tau, Nu (bind v $ Par p'' q'))) -- close
+                    else empty
           (UpB (Var x), DnB (Var y))
             -> do (v, p') <- unbind bp
                   (w, q') <- unbind bq
                   let q'' = subst w (Var v) q'
                   let s  = sp `union` sq
                       s' = if x==y then s else (x,y):s
-                  return (s', (Tau, Nu (bind v $ Par p' q''))) -- close
-          _              -> empty
+                  if s `respects` nctx
+                    then return (s', (Tau, Nu (bind v $ Par p' q''))) -- close
+                    else empty
+          _ -> empty
  <|> do (sp,(lp,bp)) <- oneb nctx p
         (sq,(lq,q')) <- one nctx q
         case (lp, lq) of
@@ -59,7 +63,9 @@ one nctx (Par p q)
             -> do (w, p') <- unbind bp
                   let s  = sp `union` sq
                       s' = if x==y then s else (x,y):s
-                  return (s', (Tau, Par (subst w v p') q')) -- comm
+                  if s `respects` nctx
+                    then return (s', (Tau, Par (subst w v p') q')) -- comm
+                    else empty
           _ -> empty
  <|> do (sp,(lp, p')) <- one nctx p
         (sq,(lq, bq)) <- oneb nctx q
@@ -74,7 +80,6 @@ one nctx (Nu b) = do (x,p) <- unbind b
                      (s,(l,p')) <- one (Nab x : nctx) p
                      return (s, (l, Nu (bind x p')))
 one _    _ = empty
-
 
 oneb nctx (In x p)      = return ([], (DnB x, p))
 oneb nctx (Match (Var x) (Var y) p)
@@ -96,3 +101,16 @@ oneb nctx (Nu b)
           Up y x' | Var x == x' -> return (s, (UpB y, bind x p')) -- open
           _       -> empty
 oneb _    _ = empty
+
+-- nabla consistency check
+respects s nctx = True -- TODO
+{- Map names to ints in a decreasing manner,
+that is nctx :: [NameTm] to [n-1,...,0] :: Int since the most recnelty
+introduced variable is at the head and the outermost the last. Also map
+the s to pairs of ints by the same mapping scheme. Then we can apply "join"
+repeatedly for each pair of ints to the all-singleton partition, that is,
+[[0],[1],...,[n-1]]. The "rep" value of nabla must always be itself, being
+the least element of its equivalence class. Otherwise, the nabla restriction
+has been violated because it means that there has been an attempt to unify
+a nabla varible.
+-}

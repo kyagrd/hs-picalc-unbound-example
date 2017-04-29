@@ -7,6 +7,7 @@
 -- {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
+import           LateLTS
 import           PiCalc
 import           SubstLatt               (someFunc)
 import           Unbound.LocallyNameless
