@@ -7,11 +7,13 @@
 module OpenLTS where
 
 import           Control.Applicative
+import           Data.List               (union)
 import qualified Data.Map.Strict         as Map
 import           Data.Partition          hiding (empty)
 import qualified Data.Set                as Set
+import qualified LateLTS                 as L
 import           PiCalc
-import           Unbound.LocallyNameless hiding (bind, empty, fresh, join, rep)
+import           Unbound.LocallyNameless (runFreshMT, subst, unbind)
 import qualified Unbound.LocallyNameless as LN
 
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -26,13 +28,16 @@ q2n (All x) = x
 q2n (Nab x) = x
 
 -- names in nctx must be distinct (i.e., no  duplicates)
+-- and they are in reversed order from what we usally write on paper
+-- as usual for contexts represented as lists
+-- that is, "forall x y z ..." would be [All z,All y,All x]
 one nctx (Out x y p)   = return ([], (Up x y, p))
 one nctx (TauP p)      = return ([], (Tau, p))
-one nctx (Match (Var x) (Var y) p) = do (s, r) <- one nctx p
-                                        let s' = if x==y then s else (x,y):s
-                                        if s' `respects` nctx
-                                          then return (s', r)
-                                          else empty
+one nctx (Match (Var x) (Var y) p)
+          | x == y    = one nctx p
+          | otherwise = do (s, r) <- one nctx p
+                           let s' = (x,y) .: s
+                           if s' `respects` nctx then return (s', r) else empty
 one nctx (Plus p q) = one nctx p <|> one nctx q
 one nctx (Par p q)
    = do { (s,(l,p')) <- one nctx p; return (s,(l,Par p' q)) }
@@ -44,8 +49,7 @@ one nctx (Par p q)
             -> do (w, p') <- unbind bp
                   (v, q') <- unbind bq
                   let p'' = subst w (Var v) p'
-                  let s  = sp `union` sq
-                      s' = if x==y then s else (x,y):s
+                  let s' = (x,y) .: sp .+ sq
                   if s' `respects` nctx
                     then return (s', (Tau, Nu(v.\Par p'' q'))) -- close
                     else empty
@@ -53,8 +57,7 @@ one nctx (Par p q)
             -> do (v, p') <- unbind bp
                   (w, q') <- unbind bq
                   let q'' = subst w (Var v) q'
-                  let s  = sp `union` sq
-                      s' = if x==y then s else (x,y):s
+                  let s' = (x,y) .: sp .+ sq
                   if s' `respects` nctx
                     then return (s', (Tau, Nu(v.\Par p' q''))) -- close
                     else empty
@@ -64,8 +67,7 @@ one nctx (Par p q)
         case (lp, lq) of
           (DnB (Var x), Up (Var y) v)
             -> do (w, p') <- unbind bp
-                  let s  = sp `union` sq
-                      s' = if x==y then s else (x,y):s
+                  let s' = (x,y) .: sp .+ sq
                   if s' `respects` nctx
                     then return (s', (Tau, Par (subst w v p') q')) -- comm
                     else empty
@@ -75,8 +77,7 @@ one nctx (Par p q)
         case (lp, lq) of
           (Up (Var y) v, DnB (Var x))
             -> do (w, q') <- unbind bq
-                  let s  = sp `union` sq
-                      s' = if x==y then s else (x,y):s
+                  let s' = (x,y) .: sp .+ sq
                   if s' `respects` nctx
                     then return (s', (Tau, Par p' (subst w v q'))) -- comm
                     else empty
@@ -88,9 +89,10 @@ one _    _ = empty
 
 oneb nctx (In x p) = return ([], (DnB x, p))
 oneb nctx (Match (Var x) (Var y) p)
-     | x == y = oneb nctx p
-     | otherwise = do { (s,r) <- oneb nctx p'; return ((x,y):s,r) }
-                 where p' = subst x (Var y) p
+          | x == y    = oneb nctx p
+          | otherwise = do (s, r) <- oneb nctx p
+                           let s' = (x,y) .: s
+                           if s' `respects` nctx then return (s', r) else empty
 oneb nctx (Plus p q) = oneb nctx p <|> oneb nctx q
 oneb nctx (Par p q)
    = do { (s,(l,b')) <- oneb nctx p; (x,p') <- unbind b'; return (s,(l, x.\Par p' q)) }
@@ -107,20 +109,26 @@ oneb nctx (Nu b)
           _       -> empty
 oneb _    _ = empty
 
--- nabla consistency check
-respects s nctx = all (\n -> rep p n == n) nabs
-  where
-    nabs = [n2i x | Nab x <- nctx] -- index of nabla variables
-    p = foldr (.) id [joinElems (n2i x) (n2i y) | (x,y) <- s] p0
-    i2n i = revns !! i
-    n2i x = n2iMap Map.! x -- error if mapping from x not found
-    n2iMap = Map.fromList $ zip revns [0..maxVal]
-    revns = reverse $ map q2n nctx :: [NameTm]
-    maxVal = length revns - 1 :: Int
-    p0 = fromDisjointSets (fmap Set.singleton [0..maxVal]) :: Partition Int
+-- just to remove duplication by simmetry when consing
+-- better optimization might be using Set ... but for now just list
+(x,y) .: s = case compare x y of  LT -> (x,y):s
+                                  EQ -> s
+                                  GT -> (y,x):s
+(.+) = union
 
-{- Map names to ints in a decreasing manner,
-  that is, from nctx :: [NameTm] to [n-1,...,0] :: Int.
+respects s nctx = all (\n -> rep partition n == n) nabixs
+  where
+    nabixs = [n2i x | Nab x <- nctx]
+    partition = foldr (.) id [joinElems (n2i x) (n2i y) | (x,y) <- s] p0
+    p0 = fromDisjointSets (fmap Set.singleton [0..maxVal]) :: Partition Int
+    i2n i = revns !! i
+    n2i x = n2iMap Map.! x
+    revns = reverse $ map q2n nctx :: [NameTm]
+    n2iMap = Map.fromList $ zip revns [0..maxVal]
+    maxVal = length revns - 1 :: Int
+{-
+Map names to ints in a decreasing manner, that is,
+from nctx :: [NameTm] to [n-1,...,0] :: Int.
 The numbering is in reverse order since the most recnelty introduced variable
 is at the head of nctx and the outermost at the last. Also map the s to
 pairs of ints following the same mapping scheme. Then we can apply "join"
@@ -129,4 +137,30 @@ repeatedly for each pair of ints to the all-singleton partition, that is,
 must be itself, being the least element of its equivalence class. Otherwise,
 the nabla restriction has been violated because it means that there has been
 an attempt to unify a nabla varible with another variable introduced before.
+-}
+
+-- build substutition from nctx and equanity constraint list
+substitute nctx s = foldr (.) id [subst x (Var y) | (x,y)<-s']
+  where
+    s' = [(i2n i, i2n $ rep partition i) | i<-[0..maxVal]] -- map to min val
+    -- nabixs = [n2i x | Nab x <- nctx]
+    partition = foldr (.) id [joinElems (n2i x) (n2i y) | (x,y) <- s] p0
+    p0 = fromDisjointSets (fmap Set.singleton [0..maxVal]) :: Partition Int
+    i2n i = revns !! i
+    n2i x = n2iMap Map.! x
+    revns = reverse $ map q2n nctx :: [NameTm]
+    n2iMap = Map.fromList $ zip revns [0..maxVal]
+    maxVal = length revns - 1 :: Int
+
+type EqC a = [(a,a)]
+
+{- TODO
+sim nctx p q = and <$> do
+  (sp, r) <- one nctx p
+  let (lp,p') = substitute nctx sp r
+  (lq,q1) <- L.one (substitute nctx sp q) -- follow by late step
+  if lp==lq
+    then return True
+    else return False
+    if lp == lq then return True else return empty
 -}

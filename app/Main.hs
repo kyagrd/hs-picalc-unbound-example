@@ -18,6 +18,7 @@ import           Unbound.LocallyNameless
 {-# ANN module "HLint: ignore Use mappend" #-}
 
 x, y, z :: NameTm
+w = s2n "w"
 x = s2n "x"
 y = s2n "y"
 z = s2n "z"
@@ -32,6 +33,9 @@ axay = reverse [All x, All y]
 axny = reverse [All x, Nab y]
 nxay = reverse [Nab x, All y]
 nxny = reverse [Nab x, Nab y]
+axayazaw = reverse $ map All [x,y,z,w]
+
+
 
 printLateOneFrom p = do
   putStrLn $ "one step from: " ++ show p
@@ -73,7 +77,18 @@ main = do
   putStrLn "================================================================"
   printOpenOneFrom axay p2
   putStrLn "================================================================"
+  putStrLn ""
+  print (runFreshMT dosomething :: [Pr])
 
+dosomething = do
+  (s,(l,p')) <- O.one nctx p
+  return $ O.substitute nctx s p'
+  where
+  nctx = axayazaw
+  p =
+      Match (Var x) (Var w) $ Match (Var z) (Var x) $
+      -- Match (Var x) (Var y) $ Match (Var w) (Var z) $
+      TauP (Out (Var x) (Var w) Null) `Plus` TauP (Out (Var y) (Var z) Null)
 
 
 {-

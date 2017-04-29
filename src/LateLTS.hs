@@ -7,16 +7,16 @@
 module LateLTS where
 
 import           Control.Applicative
+import           Data.List               (union)
+import qualified Data.Map.Strict         as Map
+import           Data.Partition          hiding (empty)
+import qualified Data.Set                as Set
 import           PiCalc
-import           Unbound.LocallyNameless hiding (bind, empty, fresh, join,rep)
+import           Unbound.LocallyNameless (subst, unbind)
 import qualified Unbound.LocallyNameless as LN
-
 
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
-
--- TOOD can nctx and unification constraint collection
--- packaged as a set of monad transformer layers?
 
 one (Out x y p)   = return (Up x y, p)
 one (TauP p)      = return (Tau, p)
