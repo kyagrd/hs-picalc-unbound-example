@@ -15,9 +15,12 @@ import           Data.Partition          hiding (empty)
 import qualified Data.Set                as Set
 import qualified LateLTS                 as L
 import           PiCalc
-import           Unbound.LocallyNameless (Bind, Fresh, Subst, runFreshMT, subst,
+import           Unbound.LocallyNameless (Bind, Fresh, Subst, bind, fresh,
+                                          runFreshM, runFreshMT, s2n, subst,
                                           unbind)
 import qualified Unbound.LocallyNameless as LN
+
+import           Debug.Trace
 
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
@@ -157,17 +160,18 @@ substitute nctx s = foldr (.) id [subst x (Var y) | (x,y)<-s']
 -- TODO make something that produce information other than just bool result
 -- which could be used for generating bisim graphs and distinguishing formulae
 
+sim :: [Quan] -> Pr -> Pr -> Bool
 sim nctx p q = (and :: [Bool] -> Bool) $
   do (s, r) <- runFreshMT (one nctx p)
      let (lp, p') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, q') <- L.one (substitute nctx s q) -- follow by late step
        guard $ lp == lq
        return $ sim nctx p' q'
   <|>
   do (s, r) <- runFreshMT (oneb nctx p)
      let (lp, bp') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
        (x, p', q') <- unbind2' bp' bq'
        let nctx' = case lp of DnB _ -> All x : nctx
@@ -175,37 +179,174 @@ sim nctx p q = (and :: [Bool] -> Bool) $
        guard $ lp == lq
        return $ sim nctx' p' q'
 
+bisim :: [Quan] -> Pr -> Pr -> Bool
 bisim nctx p q = (and :: [Bool] -> Bool) $
   do (s, r) <- runFreshMT (one nctx p)
      let (lp, p') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, q') <- L.one (substitute nctx s q) -- follow by late step
        guard $ lp == lq
-       return $ sim nctx p' q'
+       return $ bisim nctx p' q'
   <|>
   do (s, r) <- runFreshMT (oneb nctx p)
      let (lp, bp') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
        (x, p', q') <- unbind2' bp' bq'
        let nctx' = case lp of DnB _ -> All x : nctx
                               UpB _ -> Nab x : nctx
        guard $ lp == lq
-       return $ sim nctx' p' q'
+       return $ bisim nctx' p' q'
   <|>
   do (s, r) <- runFreshMT (one nctx q)
      let (lq, q') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lp, p') <- L.one (substitute nctx s p) -- follow by late step
        guard $ lp == lq
-       return $ sim nctx p' q'
+       return $ bisim nctx p' q'
   <|>
   do (s, r) <- runFreshMT (oneb nctx q)
      let (lq, bq') = substitute nctx s r
-     return $ (or :: [Bool] -> Bool) $ runFreshMT $ do
+     return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lp, bp') <- L.oneb (substitute nctx s p) -- follow by late step
        (x, p', q') <- unbind2' bp' bq'
        let nctx' = case lp of DnB _ -> All x : nctx
                               UpB _ -> Nab x : nctx
        guard $ lp == lq
-       return $ sim nctx' p' q'
+       return $ bisim nctx' p' q'
+
+data Rose a = Rose a [Rose a] deriving (Eq,Ord,Show)
+
+data StepLog = One [Quan] EqC Act Pr
+             | OneB [Quan] EqC ActB (Bind NameTm Pr)
+  deriving (Eq,Ord,Show)
+
+returnL x = return . Rose (Left x)
+returnR x = return . Rose (Right x)
+
+sim' :: [Quan] -> Pr -> Pr -> [Rose (Either StepLog StepLog)]
+sim' nctx p q =
+  do (s, r) <- runFreshMT (one nctx p)
+     let (lp, p') = substitute nctx s r
+     returnL (One nctx s lp p') . runFreshMT $ do
+       (lq, q') <- L.one (substitute nctx s q) -- follow by late step
+       guard $ lp == lq
+       returnR (One nctx s lq q') $ sim' nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx p)
+     let (lp, bp') = substitute nctx s r
+     returnL (OneB nctx s lp bp') . runFreshMT $ do
+       (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       returnR (OneB nctx s lq bq') $ sim' nctx' p' q'
+
+bisim' :: [Quan] -> Pr -> Pr -> [Rose (Either StepLog StepLog)]
+bisim' nctx p q =
+  do (s, r) <- runFreshMT (one nctx p)
+     let (lp, p') = substitute nctx s r
+     returnL (One nctx s lp p') . runFreshMT $ do
+       (lq, q') <- L.one (substitute nctx s q) -- follow by late step
+       guard $ lp == lq
+       returnR (One nctx s lq q') $ bisim' nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx p)
+     let (lp, bp') = substitute nctx s r
+     returnL (OneB nctx s lp bp') . runFreshMT $ do
+       (lq, bq') <- L.oneb (substitute nctx s q) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       returnR (OneB nctx s lq bq') $ bisim' nctx' p' q'
+  <|>
+  do (s, r) <- runFreshMT (one nctx q)
+     let (lq, q') = substitute nctx s r
+     returnR (One nctx s lq q') . runFreshMT $ do
+       (lp, p') <- L.one (substitute nctx s p) -- follow by late step
+       guard $ lp == lq
+       returnL (One nctx s lp p') $ bisim' nctx p' q'
+  <|>
+  do (s, r) <- runFreshMT (oneb nctx q)
+     let (lq, bq') = substitute nctx s r
+     returnR (OneB nctx s lq bq') . runFreshMT $ do
+       (lp, bp') <- L.oneb (substitute nctx s p) -- follow by late step
+       (x, p', q') <- unbind2' bp' bq'
+       let nctx' = case lp of DnB _ -> All x : nctx
+                              UpB _ -> Nab x : nctx
+       guard $ lp == lq
+       returnL (OneB nctx s lp bp') $ bisim' nctx' p' q'
+
+
+roses2df :: [Rose (Either StepLog StepLog)] -> [(Formula,Formula)]
+roses2df rs =
+  -- base cases
+  do One _ sp a _ <- [v | Rose (Left v@(One _ _ _ _)) [] <- rs]
+     let formL = preCbase sp a
+     let stepRs = [v | Rose (Right v@(One _ _ a' _)) _ <- rs, a==a']
+     if null stepRs then return (formL, Box a FF)
+       else do { One _ sq _ _ <- stepRs; return (formL, postCbase sq a) }
+  <|>
+  do One _ sq a _ <- [v | Rose (Right v@(One _ _ _ _)) [] <- rs]
+     let formR = preCbase sq a
+     return (Box a FF, formR)
+     let stepLs = [v | Rose (Left v@(One _ _ a' _)) _ <- rs, a==a']
+     if null stepLs then return (Box a FF, formR)
+       else do { One _ sp _ _ <- stepLs; return (postCbase sp a, formR) }
+  <|>
+  do OneB _ sp a _ <- [v | Rose (Left v@(OneB _ _ _ _)) [] <- rs]
+     let formL = preCbaseB sp a
+     let stepRs = [v | Rose (Right v@(OneB _ _ a' _)) _ <- rs, a==a']
+     if null stepRs then return (formL, BoxB a $ constbind FF)
+       else do { One _ sq _ _ <- stepRs; return (formL, postCbaseB sq a) }
+  <|>
+  do OneB _ sq a _ <- [v | Rose (Right v@(OneB _ _ _ _)) [] <- rs]
+     let formR = preCbaseB sq a
+     let stepLs = [v | Rose (Left v@(OneB _ _ a' _)) _ <- rs, a==a']
+     if null stepLs then return (BoxB a $ constbind FF, formR)
+       else do { One _ sp _ _ <- stepLs; return (postCbaseB sp a, formR) }
+  -- inductive cases
+  <|>
+  do Rose (Left (One _ s a _)) rsR <- rs
+     (dfsL,dfsR) <- unzip <$> sequence (roses2df <$> [rs' | Rose  _ rs' <- rsR])
+     return (preC s a dfsL, postC s a dfsR)
+  <|>
+  do Rose (Right (One _ s a _)) rsL <- rs
+     (dfsL,dfsR) <- unzip <$> sequence (roses2df <$> [rs' | Rose  _ rs' <- rsL])
+     return (postC s a dfsL, preC s a dfsR)
+{- B inductive cases
+  <|>
+  do Rose (Left (OneB _ s a _)) rsR <- rs
+     (dfsL,dfsR) <- unzip <$> sequence (roses2df <$> [rs' | Rose  _ rs' <- rsR])
+     return (preC s a dfsL, postC s a dfsR)
+  <|>
+  do Rose (Right (OneB _ s a _)) rsL <- rs
+     (dfsL,dfsR) <- unzip <$> sequence (roses2df <$> [rs' | Rose  _ rs' <- rsL])
+     return (postC s a dfsL, preC s a dfsR)
+-}
+  where
+    preCbase, postCbase :: EqC -> Act -> Formula
+    preCbase [] a = Dia a TT
+    preCbase s  a = BoxMatch (vv s) $ Dia a TT
+    postCbase [] a = Box a FF
+    postCbase s  a = Box a $ DiaMatch (vv s) TT
+    preCbaseB, postCbaseB :: EqC -> ActB -> Formula
+    preCbaseB [] a = DiaB a $ constbind TT
+    preCbaseB s  a = BoxMatch (vv s) . DiaB a $ constbind TT
+    postCbaseB [] a = BoxB a $ constbind FF
+    postCbaseB s  a = BoxB a . constbind $ DiaMatch (vv s) TT
+    preC, postC :: EqC -> Act -> [Formula] -> Formula
+    preC [] a [] = Dia a TT
+    preC [] a fs = Dia a $ Conj fs
+    preC s  a [] = BoxMatch (vv s) $ Dia a TT
+    preC s  a fs = BoxMatch (vv s) $ Dia a (Conj fs)
+    postC [] a [] = Box a FF
+    postC [] a fs = Box a $ Disj fs
+    postC s  a [] = Box a $ DiaMatch (vv s) TT
+    postC s  a fs = Box a $ Disj (DiaMatch (vv s) TT : fs)
+    vv s = [(Var x,Var y) | (x,y)<-s]
+    constbind t = runFreshM $ do { x <- fresh (s2n "x"); return $ bind x t }
+
+--

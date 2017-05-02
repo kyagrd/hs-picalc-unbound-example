@@ -80,6 +80,10 @@ main = do
   putStrLn ""
   print (runFreshMT dosomething :: [Pr])
   print (runFreshMT dosomething2 :: [Bind NameTm Pr])
+  print $ O.bisim axay (tau `Plus` TauP tau) (TauP $ Match (Var x) (Var y) tau)
+  mapM_ print $ O.bisim' axay (tau `Plus` TauP tau) (TauP $ Match (Var x) (Var y) tau)
+
+tau = TauP Null
 
 dosomething = do
   (s,(l,p')) <- O.one nctx p
@@ -87,7 +91,7 @@ dosomething = do
   where
   nctx = axayazaw
   p =
-      Match (Var x) (Var w) $ Match (Var z) (Var x) $
+      Match (Var x) (Var w) . Match (Var z) (Var x) $
       -- Match (Var x) (Var y) $ Match (Var w) (Var z) $
       TauP (Out (Var x) (Var w) Null) `Plus` TauP (Out (Var y) (Var z) Null)
 
@@ -97,6 +101,12 @@ dosomething2 = do
   where
     nctx = []
     p = Nu$x.\(In (Var x) $y.\TauP Null)
+
+{-
+roses2df $ bisim' axayazaw (Match (Var z) (Var w) tau) (Match (Var x) (Var y) tau)
+-}
+
+
 {-
 *Main Lib> :t runFreshMT (one p1)
 runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)

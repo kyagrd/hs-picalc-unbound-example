@@ -46,7 +46,7 @@ instance GV.Labellable (Partition Int) where
 
 
 mkPartitionLattice :: Int -> (NodeMap (Partition Int), G)
-mkPartitionLattice n = snd $ run g0 $ addFromFix p0
+mkPartitionLattice n = snd . run g0 $ addFromFix p0
   where
 
   maxVal = n - 1

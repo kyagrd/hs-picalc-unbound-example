@@ -35,19 +35,26 @@ data Pr
 data Act  = Up Tm Tm | Dn Tm Tm | Tau deriving (Eq, Ord, Show)
 data ActB = UpB Tm   | DnB Tm         deriving (Eq, Ord, Show)
 
+data Formula = TT | FF | Conj [Formula] | Disj [Formula]
+  | Dia Act Formula | Box Act Formula
+  | DiaB ActB (Bind NameTm Formula) | BoxB ActB (Bind NameTm Formula)
+  | DiaMatch [(Tm,Tm)] Formula | BoxMatch [(Tm,Tm)] Formula
+  deriving (Eq,Ord,Show)
+
 instance Eq Pr where (==) = aeq
 instance Eq (Bind NameTm Pr) where (==) = aeqBinders
 instance Ord (Bind NameTm Pr) where compare = acompare
+instance Eq (Bind NameTm Formula) where (==) = aeqBinders
+instance Ord (Bind NameTm Formula) where compare = acompare
 
-liftBind2 op b1 b2 = runFreshM $ do
-    (x1,p1) <- unbind b1
-    (x2,p2) <- unbind b2
-    return $ p1 `op` subst x1 (Var x2) p2
-
-$(derive [''Tm, ''Pr, ''Act, ''ActB]) -- tried to infix Par as (:|:) but illegal TH thing
+ -- tried to infix Par as (:|:) but illegal TH thin
+$(derive [''Tm, ''Act, ''ActB, ''Pr, ''Formula])
 
 instance Alpha Tm
 instance Alpha Pr
+instance Alpha Act
+instance Alpha ActB
+instance Alpha Formula
 
 instance Subst Tm Tm where
   isvar (Var v) = Just (SubstName v)
@@ -56,6 +63,7 @@ instance Subst Tm Tm where
 instance Subst Tm Pr where
 instance Subst Tm Act where
 instance Subst Tm ActB where
+instance Subst Tm Formula where
 
 ---- if you are to define unification kind of thing with Hashmap
 -- instance Hashable NamePr where
@@ -63,8 +71,6 @@ instance Subst Tm ActB where
 
 -- lambda-Prolog like infix bind notiation
 (.\) = bind
-
-
 
 -- assming there is exactly one NameTm binding for both
 unbind2' b1 b2 = do { Just (x,p1,_,p2) <- unbind2 b1 b2; return (x,p1,p2) }

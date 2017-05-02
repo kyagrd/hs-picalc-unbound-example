@@ -13,7 +13,7 @@ import qualified Data.Map.Strict         as Map
 import           Data.Partition          hiding (empty)
 import qualified Data.Set                as Set
 import           PiCalc
-import           Unbound.LocallyNameless (Fresh, Bind, subst, unbind)
+import           Unbound.LocallyNameless (Bind, Fresh, subst, unbind)
 import qualified Unbound.LocallyNameless as LN
 
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -56,20 +56,19 @@ oneb (Plus p q)    = oneb p <|> oneb q
 oneb (Par p q)
    = do { (l,b') <- oneb p; (x,p') <- unbind b'; return (l, x.\Par p' q) }
  <|> do { (l,b') <- oneb q; (x,q') <- unbind b'; return (l, x.\Par p q') }
-oneb (Nu b)
-   = do (x,p) <- unbind b
-        (l,b') <- oneb p
-        (y,p') <- unbind b'
-        return (l, y.\Nu (x.\p')) -- restriction
- <|> do (x,p) <- unbind b
-        (Up y (Var x'),p') <- one p
-        guard $ x == x'
-        return (UpB y, x.\p')  -- open
+oneb (Nu b) = do (x,p) <- unbind b
+                 (l,b') <- oneb p
+                 (y,p') <- unbind b'
+                 return (l, y.\Nu (x.\p')) -- restriction
+          <|> do (x,p) <- unbind b
+                 (Up y (Var x'),p') <- one p
+                 guard $ x == x'
+                 return (UpB y, x.\p')  -- open
 oneb _ = empty
 
 {-
 % Finite pi-calculus specification in lambda-Prolog
-% A specification of the late transition system for the pi calculus.
+% A specification of the late transition system for the finite pi calculus.
 
 % bound input
 oneb (in X M) (dn X) M.
