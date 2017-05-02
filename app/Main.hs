@@ -79,6 +79,7 @@ main = do
   putStrLn "================================================================"
   putStrLn ""
   print (runFreshMT dosomething :: [Pr])
+  print (runFreshMT dosomething2 :: [Bind NameTm Pr])
 
 dosomething = do
   (s,(l,p')) <- O.one nctx p
@@ -90,7 +91,12 @@ dosomething = do
       -- Match (Var x) (Var y) $ Match (Var w) (Var z) $
       TauP (Out (Var x) (Var w) Null) `Plus` TauP (Out (Var y) (Var z) Null)
 
-
+dosomething2 = do
+  (s,(l,bp')) <- O.oneb nctx p
+  return $ O.substitute nctx s bp'
+  where
+    nctx = []
+    p = Nu$x.\(In (Var x) $y.\TauP Null)
 {-
 *Main Lib> :t runFreshMT (one p1)
 runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)
