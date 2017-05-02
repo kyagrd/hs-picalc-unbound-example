@@ -23,19 +23,18 @@ x = s2n "x"
 y = s2n "y"
 z = s2n "z"
 
-q1 = TauP q2
-q2 = Match (Var x) (Var y) (TauP Null)
+q1 = taup q2
+q2 = match x y (taup o)
 
-p1 = TauP Null `Plus` TauP (TauP Null)
-p2 = In (Var x) (bind z $ Out (Var x) (Var z) Null) `Par` Out (Var x) (Var y) Null
+p1 = tau .+ taup tau
+p2 = inp x(z.\out x z o) .| out x y o
+p3 = inp x(z.\out x z o) .| out y x o
 
 axay = reverse [All x, All y]
 axny = reverse [All x, Nab y]
 nxay = reverse [Nab x, All y]
 nxny = reverse [Nab x, Nab y]
 axayazaw = reverse $ map All [x,y,z,w]
-
-
 
 printLateOneFrom p = do
   putStrLn $ "one step from: " ++ show p
@@ -59,6 +58,8 @@ main = do
   putStrLn "================================================================"
   printLateOneFrom p2
   putStrLn "================================================================"
+  printLateOneFrom p3
+  putStrLn "================================================================"
   putStrLn ""
   putStrLn "================================================================"
   putStrLn "== Late LTS"
@@ -77,13 +78,21 @@ main = do
   putStrLn "================================================================"
   printOpenOneFrom axay p2
   putStrLn "================================================================"
+  printOpenOneFrom axay p3
+  putStrLn "================================================================"
   putStrLn ""
   print (runFreshMT dosomething :: [Pr])
   print (runFreshMT dosomething2 :: [Bind NameTm Pr])
-  print $ O.bisim axay (tau `Plus` TauP tau) (TauP $ Match (Var x) (Var y) tau)
-  mapM_ print $ O.bisim' axay (tau `Plus` TauP tau) (TauP $ Match (Var x) (Var y) tau)
+  print $ O.bisim axay (tau .+ taup tau) (TauP $ match x y tau)
+  mapM_ print $ O.bisim' axay (tau .+ taup tau) (TauP $ match x y tau)
+  mapM_ print . O.roses2df $ O.bisim' axay (tau .+ taup tau) (taup $ match x y tau)
+  print $ O.bisim axay (taup $ match x y tau) (tau .+ taup tau)
+  mapM_ print $ O.bisim' axay (taup $ match x y tau) (tau .+ taup tau)
+  mapM_ print . O.roses2df $ O.bisim' axay (taup $ match x y tau) (tau .+ taup tau)
+  mapM_ print $ O.roses2df $ O.bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
+  mapM_ print $ O.roses2df $ O.bisim' axayazaw (match z w tau) (match x y tau)
 
-tau = TauP Null
+
 
 dosomething = do
   (s,(l,p')) <- O.one nctx p
@@ -91,20 +100,17 @@ dosomething = do
   where
   nctx = axayazaw
   p =
-      Match (Var x) (Var w) . Match (Var z) (Var x) $
-      -- Match (Var x) (Var y) $ Match (Var w) (Var z) $
-      TauP (Out (Var x) (Var w) Null) `Plus` TauP (Out (Var y) (Var z) Null)
+      match x w . match z x $
+      -- match x y . match w z $
+      taup (out x w o) .+ taup (out y z o)
 
 dosomething2 = do
   (s,(l,bp')) <- O.oneb nctx p
   return $ O.substitute nctx s bp'
   where
     nctx = []
-    p = Nu$x.\(In (Var x) $y.\TauP Null)
+    p = Nu$x.\(inp x$y.\taup o)
 
-{-
-roses2df $ bisim' axayazaw (Match (Var z) (Var w) tau) (Match (Var x) (Var y) tau)
--}
 
 
 {-

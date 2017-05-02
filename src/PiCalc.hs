@@ -26,7 +26,7 @@ data Pr
   | In Tm (Bind NameTm Pr)
   | Out Tm Tm Pr
   | Nu (Bind NameTm Pr)
-  -- | Bang Pr
+  -- | Bang Pr -- not implemented at the moment
   | Par Pr Pr
   | Plus Pr Pr
   | Match Tm Tm Pr
@@ -41,13 +41,41 @@ data Formula = TT | FF | Conj [Formula] | Disj [Formula]
   | DiaMatch [(Tm,Tm)] Formula | BoxMatch [(Tm,Tm)] Formula
   deriving (Eq,Ord,Show)
 
+-- lambda-Prolog like infix bind notiation
+infixr 1 .\
+(.\) = bind
+
+-- infix and lowercase names for convenience
+infixl 6 .+
+(.+) = Plus
+infixl 5 .|
+(.|) = Par
+
+o = Null
+tau = TauP Null
+taup = TauP
+inp x = In (Var x)
+out x y = Out (Var x) (Var y)
+match x y = Match (Var x) (Var y)
+nu = Nu
+
+conj, disj :: [Formula] -> Formula
+
+conj []  = TT
+conj [f] = f
+conj fs  = Conj fs
+
+disj []  = FF
+disj [f] = f
+disj fs  = Disj fs
+
 instance Eq Pr where (==) = aeq
 instance Eq (Bind NameTm Pr) where (==) = aeqBinders
 instance Ord (Bind NameTm Pr) where compare = acompare
 instance Eq (Bind NameTm Formula) where (==) = aeqBinders
 instance Ord (Bind NameTm Formula) where compare = acompare
 
- -- tried to infix Par as (:|:) but illegal TH thin
+ -- tried to infix Par and Plus as (:|:) (:+:) but TH error, maybe from Replib
 $(derive [''Tm, ''Act, ''ActB, ''Pr, ''Formula])
 
 instance Alpha Tm
@@ -68,9 +96,6 @@ instance Subst Tm Formula where
 ---- if you are to define unification kind of thing with Hashmap
 -- instance Hashable NamePr where
 --   hashWithSalt s n = hashWithSalt s (name2String n, name2Integer n)
-
--- lambda-Prolog like infix bind notiation
-(.\) = bind
 
 -- assming there is exactly one NameTm binding for both
 unbind2' b1 b2 = do { Just (x,p1,_,p2) <- unbind2 b1 b2; return (x,p1,p2) }
