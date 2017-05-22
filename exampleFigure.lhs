@@ -16,7 +16,7 @@ for tree={edge={->,line width=.75pt},l sep=4ex}
 [{(1)}
    [{\!\!\!\!{\color{ACMRed}|TauP Null|}\,,\,{\color{ACMDarkBlue}|Q|}},edge label={node[midway,left,color=ACMRed,font=\scriptsize]{\color{ACMRed}$\begin{matrix*}[r]|[]|\\|Tau|\end{matrix*}$}}, edge+={color=ACMRed}
      [{\!\!\!\!\!\!{\color{ACMRed}|TauP Null|}\,,\,{\color{ACMDarkBlue}|Null|}}, edge label={node[midway,right,color=ACMDarkBlue,color=ACMDarkBlue,font=\scriptsize]{\color{ACMDarkBlue}$\begin{matrix*}[l]|[]|\\|Tau|\end{matrix*}$}}, edge+=dashed, edge+={color=ACMDarkBlue}
-       [{{\color{ACMRed}|Null|}\,,\,{\color{ACMDarkBlue}|TauP Null|}\!\!\!\!\!\!}, edge label={node[midway,left,color=ACMRed,font=\scriptsize]{\color{ACMRed}$\begin{matrix*}[r]|[]|\\|Tau|\end{matrix*}$}}, edge+={color=ACMRed} ] ] ]
+       [{{\color{ACMRed}|Null|}\,,\,{\color{ACMDarkBlue}| Null|}\!\!\!\!\!\!}, edge label={node[midway,left,color=ACMRed,font=\scriptsize]{\color{ACMRed}$\begin{matrix*}[r]|[]|\\|Tau|\end{matrix*}$}}, edge+={color=ACMRed} ] ] ]
 ]
 %
 [{(2)}

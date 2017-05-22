@@ -182,7 +182,7 @@ The key idea behind the symbolic transition is that it is not worth considering
 every single differences between worlds. For example, consider the process
 |p1 `Par` ... `Par` p_n `Par` {-"\,"-} Match y z {-"\!"-}tau|
 where |p_i = Out (V{-"\!"-}x_i) (V{-"\!"-}x_i) Null| for each |i`elem`[1..n]|.
-The only difference that matters whether |y| and |z| are unified in another world
+The only difference that matters is whether |y| and |z| are unified in another world
 so that it can make a |Tau|-step, which were not possible in the current world.
 Other details such as whether |x_i| and |y|, |x_i| and |z|, or |x_j| and |x_k|
 unifies are irrelevant.

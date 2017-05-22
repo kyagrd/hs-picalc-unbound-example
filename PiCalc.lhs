@@ -102,7 +102,7 @@ form2bdwyr (BoxMatch cs f) = undefined
 \section{Syntax}
 \label{sec:syntax}
 In this section, we define the syntax for the $\pi$-calculus and
-the modal logic, which characterizes process equivalence by open bisimution.
+the modal logic, which characterizes open bisimilarity.
 Haskell definitions of the syntax for both are provided
 in the module |PiCalc| as illustrated in Figure~\ref{fig:PiCalc}.
 
