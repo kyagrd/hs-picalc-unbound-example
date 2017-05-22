@@ -1,3 +1,4 @@
+-- vim: sw=2: ts=2: expandtab: ai:
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
@@ -20,45 +21,89 @@ import           Text.PrettyPrint.HughesPJClass
 {-# ANN module "HLint: ignore Use fmap" #-}
 {-# ANN module "HLint: ignore Use mappend" #-}
 
+appPrec :: Rational
+appPrec = 10
+
 pp = print . pPrint
 
 instance Pretty Nm where pPrint = text . show
 instance Pretty Quan where
-  pPrint (All x) = text "All" <+> pPrint x
-  pPrint (Nab x) = text "Nab" <+> pPrint x
-instance Pretty Tm where pPrint (Var x) = parens $ text "Var" <+> pPrint x
+  pPrintPrec l r (All x) = maybeParens (r > appPrec) $ text "All" <+> ppp x
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Nab x) = maybeParens (r > appPrec) $ text "Nab" <+> ppp x
+    where ppp = pPrintPrec l (appPrec+1)
+instance Pretty Tm where
+  pPrintPrec l r (Var x) = maybeParens (r > appPrec) $ text "Var" <+> ppp x
+    where ppp = pPrintPrec l (appPrec+1)
 instance Pretty Act where
-  pPrint (Up x y) = text "Up" <+> pPrint x <+> pPrint y
-  pPrint Tau = text "Tau"
+  pPrintPrec l r (Up x y) = maybeParens (r > appPrec) $ text "Up" <+> ppp x <+> ppp y
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r Tau = text "Tau"
 instance Pretty ActB where
-  pPrint (UpB x) = text "UpB" <+> pPrint x
-  pPrint (DnB x) = text "DnB" <+> pPrint x
+  pPrintPrec l r (UpB x) = maybeParens (r > appPrec) $ text "UpB" <+> ppp x
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (DnB x) = maybeParens (r > appPrec) $ text "DnB" <+> ppp x
+    where ppp = pPrintPrec l (appPrec+1)
 instance (Alpha a, Pretty a) => Pretty (Bind Nm a) where
-  pPrint b = parens $ pPrint x <> text ".\\" <> pPrint p
-           where (x,p) = runFreshM $ unbind b
+  pPrintPrec l r b = maybeParens (r > appPrec) $ ppp x <> text ".\\" <> ppp p
+    where ppp = pPrintPrec l (appPrec+1); (x,p) = runFreshM $ unbind b
 instance Pretty Pr where
-  pPrint Null = text "Null"
-  pPrint (TauP p) = parens $ text "TauP" <+> pPrint p
-  pPrint (Out x y p) = parens $ text "Out" <+> pPrint x <+> pPrint y <+> pPrint p
-  pPrint (In x b) = parens $ text "In" <+> pPrint x <+> pPrint b
-  pPrint (Plus p q) = parens $ pPrint p <+> text "`Plus`" <+> pPrint q
-  pPrint (Par p q) = parens $ pPrint p <+> text "`Par`" <+> pPrint q
-  pPrint (Nu b) = parens $ pPrint b
-  pPrint (Match x y p) = parens $ text "Match" <+> pPrint x <+> pPrint y <+> pPrint p
+  pPrintPrec _ _ Null = text "Null"
+  pPrintPrec l r (TauP p) = maybeParens (r > appPrec) $
+            text "TauP" <+> ppp p
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Out x y p) = maybeParens (r > appPrec) $
+            text "Out" <+> ppp x <+> ppp y <+> ppp p
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (In x b) = maybeParens (r > appPrec) $
+            text "In" <+> ppp x <+> ppp b
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Plus p q) = maybeParens (r > appPrec) $
+            ppp p <+> text "`Plus`" <+> ppp q
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Par p q) = maybeParens (r > appPrec) $
+            ppp p <+> text "`Par`" <+> ppp q
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Nu b) = maybeParens (r > appPrec) $
+            text "Nu" <> ppp b
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Match x y p) = maybeParens (r > appPrec) $
+            text "Match" <+> ppp x <+> ppp y <+> ppp p
+    where ppp = pPrintPrec l (appPrec+1)
 instance Pretty Form where
-  pPrint FF = text "FF"
-  pPrint TT = text "TT"
-  pPrint (Conj fs) = parens $ text "Conj" <> pPrint fs
-  pPrint (Disj fs) = parens $ text "Disj" <> pPrint fs
-  pPrint (Box a f) = parens $ text "Box" <+> parens (pPrint a) <+> pPrint f
-  pPrint (Dia a f) = parens $ text "Dia" <+> parens (pPrint a) <+> pPrint f
-  pPrint (BoxB a f) = parens $ text "BoxB" <+> parens (pPrint a) <+> pPrint f
-  pPrint (DiaB a f) = parens $ text "DiaB" <+> parens (pPrint a) <+> pPrint f
-  pPrint (BoxMatch sigma f) = parens $ text "BoxMatch" <+> pPrint sigma <+> pPrint f
-  pPrint (DiaMatch sigma f) = parens $ text "DiaMatch" <+> pPrint sigma <+> pPrint f
+  pPrintPrec _ _ FF = text "FF"
+  pPrintPrec _ _ TT = text "TT"
+  pPrintPrec l r (Conj fs) = maybeParens (r > appPrec) $
+            text "Conj" <> ppp fs
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Disj fs) = maybeParens (r > appPrec) $
+            text "Disj" <> ppp fs
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Box a f) = maybeParens (r > appPrec) $
+            text "Box" <+> ppp a <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Dia a f) = maybeParens (r > appPrec) $
+             text "Dia" <+> ppp a <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (BoxB a f) = maybeParens (r > appPrec) $
+            text "BoxB" <+> ppp a <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (DiaB a f) = maybeParens (r > appPrec) $ 
+            text "DiaB" <+> ppp a <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (BoxMatch sigma f) = maybeParens (r > appPrec) $   
+            text "BoxMatch" <+> ppp sigma <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (DiaMatch sigma f) = maybeParens (r > appPrec) $
+            text "DiaMatch" <+> ppp sigma <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
 instance Pretty StepLog where
-  pPrint (One  nctx sigma l p) = parens $ text "One" <+> pPrint nctx <+> pPrint sigma <+> pPrint l <+> pPrint p
-  pPrint (OneB nctx sigma l b) = parens $ text "OneB" <+> pPrint nctx <+> pPrint sigma <+> pPrint l <+> pPrint b
+  pPrintPrec l r (One  nctx sigma a p) = maybeParens (r > appPrec) $
+            text "One" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp p
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (OneB nctx sigma a b) = maybeParens (r > appPrec) $
+            text "OneB" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp b
+    where ppp = pPrintPrec l (appPrec+1)
 
 
 x, y, z :: Nm
@@ -164,6 +209,10 @@ main = do
   print $ bisim axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
   putStrLn . showForest $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
   mapM_ pp . forest2df $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
+  putStrLn "================================================================"
+  print $ bisim axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
+  putStrLn . showForest $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau) 
+  mapM_ pp . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
   putStrLn "================================================================"
   print $ bisim [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
   putStrLn . showForest $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))

@@ -1,0 +1,13 @@
+In the logic programming paradigm, it is difficult to develop
+an elegant solution for generating distinguishing formulae that
+witness the failure of open-bisimilarity between two pi-calculus processes;
+this was unexpected because the semantics of the pi-calculus and
+open bisimulation have already been elegantly specified
+in higher-order logic programming systems.
+Our solution using Haskell defines the formulae generation as a tree transformation from
+the forest of all nondeterministic bisimulation steps to a pair of distinguishing formulae.
+Thanks to laziness in Haskell, only the necessary paths demanded by the tree transformation
+function are generated. Our work demonstrates that Haskell and its libraries
+provide an attractive platform for symbolically analyzing equivalence properties of
+labeled transition systems in an environment sensitive setting.
+

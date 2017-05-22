@@ -1,0 +1,91 @@
+\section{Related Work}
+\label{sec:relwork}
+In this section, we discuss 
+nondeterministic programming using monads (Section~\ref{sec:relwork:monad}),
+bisimulation and its characterizing logic (Section~\ref{sec:relwork:logic}),
+and related tools (Section~\ref{sec:relwork:tools}).
+\vspace*{-1.5ex}
+\subsection{Monadic encodings of Nondeterminism}
+\label{sec:relwork:monad}
+\citet{Wadler85listm} modeled nondeterminism with a list monad.
+Monadic encodings of more sophisticated features involving nondeterminism
+(e.g., \cite{FisOleSha09,Hinze00bmt,KisShaFriSab05logict}) have been developed
+and applied to various domains (e.g., \cite{ChaGuoKohLoc98,Schrijvers09mcp}) afterwards.
+\citet{FisOleSha09} developed a custom monadic datatype for lazy nondeterministic programming.
+Their motivation was to find a way combine three desirable features found in
+functional logic programming~\cite{Hanus10lea,LopHer99toy,TolSerNit04} and
+probabilistic programming~\cite{ErwKol06pfp,Kiselyov16hakaru10}
+-- lazyness, sharing (memoization), and nondeterminism, which are known to be tricky
+to combine in functional programming. Having two versions of transitions
+(Figures~\ref{fig:IdSubLTS} and \ref{fig:OpenLTS}) in our implementation
+was to avoid an instance of undesirable side effects from this trickiness --
+naive combination of laziness and nondeterminism causing needless traversals.
+We expect our code duplication can be lifted by adopting
+such a custom nondeterministic monad.% in place of the list monad.
+\vspace*{-1.5ex}
+\subsection{Bisimulation and its Characterizing Logic}
+\label{sec:relwork:logic}
+Bound variables in the $\pi$-calculus introduce subtlety on how to instantiate
+those bound variables, hence, lead to the development of different notions of
+labeled semantics: \emph{early} and \emph{late} semantics \cite{Milner92picalcII}
+were developed prior to the \emph{open} semantics. Bisimulations based on early and late
+semantics are not closed under substitutions, hence, not closed under
+input-prefixes.
+% That is, they cannot capture process equivalence across
+% different environments,
+This falls short from the motivation of the $\pi$-calculus
+to model the \emph{mobility} of processes where channel names can be provided
+as inputs during the process execution. This shortcoming has been addressed by
+open bisimulation~\cite{Sangiorgi96acta}, which is closed under substitutions,
+hence, capturing the notion of equivalence across all environments
+(or all possible worlds).
+
+Hennessy--Milner Logic (HML)~\cite{HenMil80hml} is a classical
+characterizing logic for the Calculus of Communicating Systems (CCS)~\cite{Mil82ccs}.
+The duality between diamond and box modalities related by negation 
+(i.e., $[a]f \equiv \neg\langle a\rangle(\neg f)$ and $\langle a\rangle f \equiv \neg[a](\neg f)$)
+holds in HML. This duality continues to hold in the characterizing logics for
+early and late bisimulation for the $\pi$-calculus~\cite{MilParWal93lm}.
+Presence of this duality makes it easy to obtain the distinguishing formula
+for the opposite side by negation.
+There have been attempts \cite{TiuMil10,ParBorEriGutWeb15} on developing
+a characterizing logic for open bisimulation, but it has not been correctly
+established until our recent development of \OM~\cite{AhnHorTiu17corr}.
+Our logic \OM\ captures the intuitionistic nature of the open semantics, which
+has a natural possible worlds interpretation typically found in Kripke-style model
+of intuitionistic logic. The classical duality between diamond and box modalities
+no longer hold in \OM. This is why we needed to keep track of pairs of formulae
+for both sides %% and have extra sideway traversals
+during our distinguishing formulae generation in Section~\ref{sec:df}.%
+\vspace*{-1.5ex}
+\subsection{Tools for Checking Process Equivalence}
+\label{sec:relwork:tools}
+The mobility workbench~\cite{VicMil94mwb} is a tool for the $\pi$-calculus
+with features including open bisimulation checking. It is developed using
+an old version of SML/NJ.
+
+SPEC~\cite{TiuNamHor16spec} is a tool for security protocol verification based on
+automatic open bisimulation checking \cite{TiuDaw10} for the spi-calculus~\cite{Abadi97ccs},
+which is a variant of $\pi$-calculus whose terms are enriched by security primitives.
+The core of SPEC including open bisimulation checking is specified by
+higher-order logic predicates in Bedwyr \cite{Bedwyr07} and the user interface
+is implemented in OCaml.
+
+ProVerif~\cite{BlaFou05} is another security protocol verifier based on
+the applied $\pi$-calculus~\cite{AbaFou01appi}, which is a generic framework of
+$\pi$-calculus insatiable by supplying the term syntax and its
+rewriting rules. ProVerif is implemented in OCaml.
+The notion of open bisimilarity is not trivially applicable to 
+the applied $\pi$-calculus due to its feature of active substitution,
+although there have been some developments~\cite{ZhuGuWu08}.
+
+There are few tools using Haskell for process equivalence.
+Most relevant work to our knowledge is the symbolic (early) bisimulation for
+LOTOS \cite{CalSha01lotos}, which is a message passing process algebra
+similar to value-passing variant of CCS but with distinct features
+including multi-way synchronization. Although not for equivalence checking,
+%(nor for any other verification purposes),
+\citet{Renzy14phi} implemented an interpreter that can be used as
+a playground for executing applied $\pi$-calculus processes to
+communicate with actual HTTP servers and clients over the internet.
+

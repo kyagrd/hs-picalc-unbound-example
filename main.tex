@@ -1,0 +1,341 @@
+%% For double-blind review submission
+%\documentclass[sigplan,10pt,review,anonymous]{acmart}\settopmatter{printfolios=true}
+%% For single-blind review submission
+\documentclass[sigplan,10pt,review]{acmart}\settopmatter{printfolios=true}
+%% For final camera-ready submission
+%\documentclass[sigplan,10pt]{acmart}\settopmatter{}
+
+%% Note: Authors migrating a paper from traditional SIGPLAN
+%% proceedings format to PACMPL format should change 'sigplan,10pt' to
+%% 'acmlarge'.
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+\usepackage{forest}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{marvosym}
+\newcommand{\MVUparrow}{\,\scalebox{1}[1.4]{\rotatebox[origin=c]{90}{\MVRightarrow}}}
+\newcommand{\MVDnarrow}{\,\scalebox{1}[1.4]{\rotatebox[origin=c]{-90}{\MVRightarrow}}}
+\usepackage{semantic}
+\usepackage[normalem]{ulem}
+\usepackage{enumitem}
+\setlist{leftmargin=5.5mm}
+\usepackage{lipsum}
+
+\newcommand{\sub}[2]{\mathclose{\{^{#2\!\!\!}\reflectbox{$\!\smallsetminus$}_{\!#1}\hspace{-.2mm}\}}}
+\usepackage{mylhs2tex}
+
+
+%% Some recommended packages.
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
+%%%
+
+\newcommand{\xone}[1]{\mathop{\raisebox{-.3ex}{$\xrightarrow{\raisebox{-.5ex}{\scriptsize{\ensuremath{#1}}}}$}}}
+\newcommand{\xoneb}[1]{\mathop{\raisebox{-.3ex}{$\xrightharpoonup{\raisebox{-.5ex}{\scriptsize{\ensuremath{#1}}}}_{\!\!\!\textsc{b}}$}}}
+\newcommand{\OM}[0]{\ensuremath{\mathcal{O\!M}}}
+
+\makeatletter\if@ACM@journal\makeatother
+%% Journal information (used by PACMPL format)
+%% Supplied to authors by publisher for camera-ready submission
+\acmJournal{PACMPL}
+\acmVolume{1}
+\acmNumber{1}
+\acmArticle{1}
+\acmYear{2017}
+\acmMonth{1}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\else\makeatother
+%% Conference information (used by SIGPLAN proceedings format)
+%% Supplied to authors by publisher for camera-ready submission
+\acmConference[Haskell'17]{ACM SIGPLAN Haskell Symposium}{September 07--08, 2017}{Oxford, UK}
+\acmYear{2017}
+\acmISBN{978-x-xxxx-xxxx-x/YY/MM}
+\acmDOI{10.1145/nnnnnnn.nnnnnnn}
+\startPage{1}
+\fi
+
+
+%% Copyright information
+%% Supplied to authors (based on authors' rights management selection;
+%% see authors.acm.org) by publisher for camera-ready submission
+\setcopyright{none}             %% For review submission
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+%\setcopyright{rightsretained}
+%\copyrightyear{2017}           %% If different from \acmYear
+
+
+%% Bibliography style
+\bibliographystyle{ACM-Reference-Format}
+%% Citation style
+%% Note: author/year citations are required for papers published as an
+%% issue of PACMPL.
+%\citestyle{acmauthoryear}  %% For author/year citations
+%\citestyle{acmnumeric}     %% For numeric citations
+%\setcitestyle{nosort}      %% With 'acmnumeric', to disable automatic
+                            %% sorting of references within a single citation;
+                            %% e.g., \cite{Smith99,Carpenter05,Baker12}
+                            %% rendered as [14,5,2] rather than [2,5,14].
+%\setcitesyle{nocompress}   %% With 'acmnumeric', to disable automatic
+                            %% compression of sequential references within a
+                            %% single citation;
+                            %% e.g., \cite{Baker12,Baker14,Baker16}
+                            %% rendered as [2,3,4] rather than [2-4].
+
+
+
+\begin{document}
+
+%% Title information
+%% \title[Generating Certificates for non-Open Bisimilar Processes]{
+%%  	Generating Certificates for Pi-Calculus Processes
+%%  	Distingishable by Open Bisimulation}         %% [Short Title] is optional;
+%% \title[Generating Distinguishing Formulae for the pi-Calculus]{
+%% 	Generating Distinguishing Formulae for Open Bisimilarity for the pi-Calculus}         %% [Short Title] is optional;
+
+\title{Generating Witness of Non-Bisimilarity for the pi-Calculus}
+
+%% when present, will be used in
+                                        %% header instead of Full Title.
+\titlenote{Draft submitted to Haskell'17}  %% \titlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+% \subtitle{Subtitle}                     %% \subtitle is optional
+% \subtitlenote{with subtitle note}       %% \subtitlenote is optional;
+                                        %% can be repeated if necessary;
+                                        %% contents suppressed with 'anonymous'
+
+
+%% Author information
+%% Contents and number of authors suppressed with 'anonymous'.
+%% Each author should be introduced by \author, followed by
+%% \authornote (optional), \orcid (optional), \affiliation, and
+%% \email.
+%% An author may have multiple affiliations and/or emails; repeat the
+%% appropriate command.
+%% Many elements are not rendered, but should be provided for metadata
+%% extraction tools.
+
+\author{Ki Yung Ahn}
+% \authornote{with author1 note}          %% \authornote is optional;
+                                          %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+%  \position{Position1}
+%  \department{Department1}              %% \department is recommended
+  \institution{Nanyang Technological University}            %% \institution is required
+%  \streetaddress{Street1 Address1}
+%  \city{City1}
+%  \state{State1}
+%  \postcode{PostCode1}
+  \country{Singapore}
+}
+\email{yaki@ntu.edu.sg}          %% \email is recommended
+
+\author{Ross Horne}
+% \authornote{with author2 note}          %% \authornote is optional;
+                                          %% can be repeated if necessary
+\orcid{nnnn-nnnn-nnnn-nnnn}             %% \orcid is optional
+\affiliation{
+%  \position{Position2a}
+%  \department{Department2a}             %% \department is recommended
+  \institution{Nanyang Technological University}           %% \institution is required
+%  \streetaddress{Street Address}
+%  \city{City}
+%  \state{State}
+%  \postcode{PostCode}
+  \country{Singapore}
+}
+\email{rhorne@ntu.edu.sg}         %% \email is recommended
+
+\author{Alwen Tiu}
+% \authornote{with author2 note} %% \authornote is optional; can be repeated if necessary
+%\orcid{nnnn-nnnn-nnnn-nnnn}      %% \orcid is optional
+\affiliation{
+%  \position{Position2a}
+%  \department{Department2a}             %% \department is recommended
+  \institution{Nanyang Technological University}           %% \institution is required
+%  \streetaddress{Street2a Address2a}
+%  \city{City}
+%  \state{State}
+%  \postcode{PostCode}
+  \country{Singapore}
+}
+\email{atiu@ntu.edu.sg}         %% \email is recommended
+
+
+
+%% Paper note
+%% The \thanks command may be used to create a "paper note" ---
+%% similar to a title note or an author note, but not explicitly
+%% associated with a particular element.  It will appear immediately
+%% above the permission/copyright statement.
+%\thanks{with paper note}                %% \thanks is optional
+                                        %% can be repeated if necesary
+                                        %% contents suppressed with 'anonymous'
+
+
+%% Abstract
+%% Note: \begin{abstract}...\end{abstract} environment must come
+%% before \maketitle command
+\begin{abstract}\input{abstract}\end{abstract}
+
+
+%% 2012 ACM Computing Classification System (CSS) concepts
+%% Generate at 'http://dl.acm.org/ccs/ccs.cfm'.
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10003752.10003753.10003761.10003764</concept_id>
+<concept_desc>Theory of computation~Process calculi</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10003790.10003793</concept_id>
+<concept_desc>Theory of computation~Modal and temporal logics</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10003790.10003795</concept_id>
+<concept_desc>Theory of computation~Constraint and logic programming</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10010124.10010131.10010134</concept_id>
+<concept_desc>Theory of computation~Operational semantics</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+<concept>
+<concept_id>10003752.10010124.10010138.10010142</concept_id>
+<concept_desc>Theory of computation~Program verification</concept_desc>
+<concept_significance>100</concept_significance>
+</concept>
+<concept>
+<concept_id>10011007.10011006.10011008.10011009.10011012</concept_id>
+<concept_desc>Software and its engineering~Functional languages</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10003033.10003039.10003041.10003042</concept_id>
+<concept_desc>Networks~Protocol testing and verification</concept_desc>
+<concept_significance>100</concept_significance>
+</concept>
+<concept>
+<concept_id>10003033.10003039.10003041.10003043</concept_id>
+<concept_desc>Networks~Formal specifications</concept_desc>
+<concept_significance>100</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Theory of computation~Process calculi}
+\ccsdesc[300]{Theory of computation~Modal and temporal logics}
+\ccsdesc[300]{Theory of computation~Constraint and logic programming}
+\ccsdesc[300]{Theory of computation~Operational semantics}
+\ccsdesc[100]{Theory of computation~Program verification}
+\ccsdesc[500]{Software and its engineering~Functional languages}
+\ccsdesc[100]{Networks~Protocol testing and verification}
+\ccsdesc[100]{Networks~Formal specifications}
+%% End of generated code
+
+
+%% Keywords
+%% comma separated list
+%% \keywords is optional
+\keywords{process calculus, observational equivalence,
+labeled transition systems, open bisimulation, modal logic, dynamic logic,
+distinguishing formula, Haskell, lazy evaluation, name binding,
+constraint programming, nondeterministic programming}
+
+%% \maketitle
+%% Note: \maketitle command must come after title commands, author
+%% commands, abstract environment, Computing Classification System
+%% environment and commands, and keywords command.
+\maketitle
+
+%%%%% Section on Introduction
+\input{intro}
+
+%%%%% Section on Syntax
+\input{PiCalc} %%%%% \label{sec:syntax}  PiCalc.tex <=== PiCalc.lhs
+
+
+\section{Labeled Transition Semantics}
+\label{sec:lts}
+We discuss implementations of the labeled transition rules in Figure~\ref{fig:lts}.
+There are two versions:
+the first implements the transition step in a fixed world (Section~\ref{sec:lts:ids})
+and the second implements the transition step considering all possible worlds
+(Section~\ref{sec:lts:open}).
+%%%% The former can be viewed as an optimized version of the latter
+%%%% restricted to the fixed world given by the identity substitution.
+%%%% Both are used in the implementation of open bisimulation in Section~\ref{sec:bisim}.
+%
+\input{IdSubLTS} %%%%% \label{sec:lts:ids}  IdSubLTS.tex <=== IdSubLTS.lhs
+\input{OpenLTS} %%%%% \label{sec:lts:open}  OpenLTS.tex <=== OpenLTS.lhs
+
+
+%%%%%% OpenBisim contains three sections for Bisim, DFgen and Discussion
+\input{OpenBisim}
+%%%% \label{sec:bisim}   %% Open Bisimulation
+%%%% \label{sec:df}      %% Distinguishing Formulae Generation
+%%%% \label{sec:discuss} %% Discussions
+
+
+%%%%% Section on Related Work
+\input{related} %%%% \label{sec:relwork}
+
+
+\section{Conclusion}
+\label{sec:concl}
+We implemented automatic generation of modal logic formulae that witness
+non-open bisimilarity of processes in the $\pi$-calculus.
+These formulae can serve as certificates of process inequivalence,
+which can be validated with an existing satisfaction checker for the modal logic \OM.
+Our implementation enjoys the benefits of laziness, nondeterministic monad, and
+first-class constraints; which are well known benefits of constraint programming
+in Haskell. Laziness and monadic abstraction allows us to view all possible
+control flow of nondeterminism as lazy generated trees, so that we can define
+formula generation as a tree transformation. First-class constraints allows us
+to manage information of possible worlds. Our problem setting particularly well
+highlights these benefits because we needed additional information outside
+the control flow of a usual bisimulation check. Our application of Haskell to
+distinguishing formula generation demonstrates that Haskell and its ecosystem
+are equipped with attractive features for analyzing equivalence properties of
+labeled transition systems in an environment sensitive (or knowledge aware) setting.
+
+%% Acknowledgments
+\begin{acks}                            %% acks environment is optional
+                                        %% contents suppressed with 'anonymous'
+  %% Commands \grantsponsor{<sponsorID>}{<name>}{<url>} and
+  %% \grantnum[<url>]{<sponsorID>}{<number>} should be used to
+  %% acknowledge financial support and will be used by metadata
+  %% extraction tools.
+  This material is based upon work supported by the
+  \grantsponsor{MoEsg}{Ministry of Education, Singapore}{https://www.moe.gov.sg/}
+  under Grant No.~\grantnum{MoEsg}{MOE2014-T2-2-076}.
+  % Grant No.~\grantnum{MoEsg}{nnnnnnn} and
+  %% Any opinions, findings, and
+  %% conclusions or recommendations expressed in this material are those
+  %% of the author and do not necessarily reflect the views of the
+  %% Ministry of Education, Singapore.
+\end{acks}
+
+
+%% Bibliography
+\bibliography{biblio}
+
+
+%%%%%%%%% %% Appendix
+%%%%%%%%% \appendix
+%%%%%%%%% \section{Appendix}
+%%%%%%%%% 
+%%%%%%%%% Text of appendix \ldots
+
+\end{document}
