@@ -5,7 +5,7 @@ We point out three advantages of using Haskell for our problem of
 generating distinguishing formulae (Section~\ref{sec:discuss:adv})
 and discuss further optmizations and extensions to our current
 implementation presented in this paper (Section~\ref{sec:discuss:fur}).%
-\vspace*{-1.5ex}
+\vspace*{-1ex}
 \subsection{Advantages of using Haskell}
 \label{sec:discuss:adv}
 First, having a well-tailored generic name binding library such as
@@ -67,7 +67,7 @@ certificates regarding open bisimulation requires the ability that amounts to
 accessing meta-level properties of logic programs (e.g., substitutions) across
 nondeterminisitc execution paths, where it is preferable to have constraints
 as fist-class values.%
-\vspace*{-1.5ex}
+\vspace*{-1ex}
 \subsection{Further Optimizations and Extensions}
 \label{sec:discuss:fur}
 One obvious optimization to our current implementation is to represent

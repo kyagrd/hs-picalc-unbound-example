@@ -1,44 +1,6 @@
 %include mylhs2tex.lhs
 \section{Introduction}
 \label{sec:intro}
-
-The $\pi$-calculus is a formal model of concurrency meant to capture a notion of
-mobility, called link mobility~\cite{}. The notion of {\em names} plays a central role in this formal model;
-communcation channels are presented by names; mobility is represented by
-scoping of names and {\em scope extrusion} of names. The latter is captured in the operational semantics
-via transtions that may send a restricted channel name, and thereby enlarging its scope.
-
-The name-passing features of the $\pi$-calculus induces several variants of bisimulation equivalences,
-notably, early bisimilarity~\cite{}, late bisimilarity~\cite{} and open bisimilarity~\cite{}.
-Only the latter is a congruence and is of main interest in this paper. These bisimilarity relations can be
-alternatively characterized using modal logics. A modal logic is said to characterize a bisimilarity relation
-if whenever two processes are bisimilar then they satisfy the same set of assertions in modal logic and vice versa.
-Such a characterization is useful when one is interested in why bisimulation between two processes fails, since
-an explicit witness of non-bisimilarity, in the form of a modal logic formula (often called a {\em distinguishing formula}
-in the literature), can be constructed such that one process satisfies the formula while the
-other does not.
-Early and late bisimilarity relations can be characterized using fragments of Milner-Parrow-Walker (MPW) logic~\cite{}, and 
-a characterization of open bisimilarity has been recently proposed by Horne et. al.\cite{} in a modal logic
-called \OM.
-This work can be seen as a companion of the latter, showing that the construction of the distinguishing formula
-described there can be effectively and naturally implemented in Haskell. 
-
-What makes open bisimulation attractive is that it is effectively implementable, and has been shown
-useful to reason about processe equivalence, applied in the setting of protocol analysis~\cite{}.
-The main complication with bisimulation for the $\pi$-calculus (and name passing calculi in general)
-is that the transition system that a process generates can have infinitely many states, so the
-traditional partition-refinement-based algorithm for computing bisimulation and distinguishing
-formulae~\cite{cleveland} does not work. Instead, one needs to construct the state space `on-the-fly', similar to
-that done in Concurrency Workbench~\cite{workbench}. In our work, this on-the-fly construction is basically
-encapsulated in Haskell lazy evaluation of the search trees for distinguishing formulae.
-Another complicating factor is the fact that in $\pi$-calculus,
-fresh names can be generated and extruded, and one needs to keep track the relative scoping of names.
-This is particularly relevant in open bisimulation, where input names are treated symbolically
-(effectively, represented as variables), so care needs to be taken so that, for example, a variable
-representing an input name cannot be instantiated by a fresh name generated after the input action.
-For this, we rely on Haskell `unbind' library, that uses the {\em locally nameless} representation of binding
-construts, to represent $\pi$-processes and fresh name generation.
-
 The main idea of this paper is that Haskell and its libraries provide
 a great platform for analyzing behaviors of nondeterministic transition systems 
 in a symbolic way. Our main contribution is identifying an interesting problem
@@ -46,6 +8,59 @@ from process calculus and demonstrating its solution in Haskell that supports
 this idea. More specifically, we implement automatic generation of
 modal logic formulae for two non-open bisimilar processes in the $\pi$-calculus,
 which can be machine-checked to witness that the two processes are indeed distinct.
+
+In this section, we give a brief background on the $\pi$-calculus, bisimulation,
+and its characterizing logic; discuss the motivating example; and summarize
+our contributions.\vspace*{-2ex}
+
+\paragraph{The $\pi$-calculus}\hspace{-1.5ex}\cite{Milner92picalcI,Milner92picalcII}
+is a formal model of concurrency meant to capture a notion of mobile processes.
+The notion of {\em names} plays a central role in this formal model;
+communication channels are presented by names; mobility is represented by
+scoping of names and {\em scope extrusion} of names. The latter is captured in
+the operational semantics via transitions that may send a restricted channel name,
+and thereby enlarging its scope.
+
+The name-passing features of the $\pi$-calculus induces several variants of
+bisimulation equivalences, notably, early \cite{Milner92picalcII},
+late~\cite{Milner92picalcII}, and open~\cite{Sangiorgi96acta} bisimilarities.
+Only the latter is a congruence and is of main interest in this paper.
+These bisimilarity relations can be alternatively characterized using modal logics.
+A modal logic is said to characterize a bisimilarity relation if whenever
+two processes are bisimilar then they satisfy the same set of assertions
+in modal logic and vice versa. Such a characterization is useful for analyzing
+why bisimulation between two processes fails, since an explicit witness of
+non-bisimilarity, in the form of a modal logic formula (often called
+a {\em distinguishing formula} in the literature), can be constructed such that
+one process satisfies the formula while the other does not.
+Early and late bisimilarities can be characterized using fragments of
+Milner-Parrow-Walker (MPW) logic~\cite{MilParWal93lm}, and a characterization of
+open bisimilarity has been recently proposed by \citet{AhnHorTiu17corr} using
+a modal logic called \OM. Our work can be seen as a companion of the latter,
+showing that the construction of the distinguishing formula described there can
+be effectively and naturally implemented in Haskell. 
+
+What makes open bisimulation attractive is that it is effectively implementable,
+and has been shown useful to reason about processe equivalence, applied in
+the setting of protocol analysis~\cite{TiuNamHor16spec}.
+The main complication with bisimulation for the $\pi$-calculus
+(and name passing calculi in general) is that the transition system that
+a process generates can have infinitely many states, so the traditional
+partition-refinement-based algorithm for computing bisimulation and
+distinguishing formulae~\cite{Cleaveland90} does not work. Instead,
+one needs to construct the state space `on-the-fly', similar to that done in
+the Mobility Workbench~\cite{VicMol94mwb}. In our work, this on-the-fly
+construction is basically encapsulated in Haskell's lazy evaluation of
+the search trees for distinguishing formulae. Another complicating factor is
+the fact that in $\pi$-calculus, fresh names can be generated and extruded,
+and one needs to keep track the relative scoping of names. This is particularly
+relevant in open bisimulation, where input names are treated symbolically
+(effectively, represented as variables), so care needs to be taken so that,
+for example, a variable representing an input name cannot be instantiated by
+a fresh name generated after the input action. For this, we rely on
+the \textsf{unbound} library~\cite{unbound11}, which uses a locally nameless
+representation of terms with binding structures, to represent processes with
+bound names and fresh name generation.
 
 % The symbolic nature of input names in open bisimulation is in fact a source of much complication
 % in defining a modal logic that characterizes it. In particular, the modal logic $\mathcal{OM}$
