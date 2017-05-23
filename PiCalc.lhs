@@ -106,14 +106,17 @@ the modal logic, which characterizes open bisimilarity.
 Haskell definitions of the syntax for both are provided
 in the module |PiCalc| as illustrated in Figure~\ref{fig:PiCalc}.
 
-In general, $\pi$-calculus and its characterizing logic shares a common term
-structure, which represents either communication channels or values that
-are communicated through those channels. For instance, terms in some
-applied variants of $\pi$-calculi (e.g., \cite{Abadi97ccs,AbaFou01appi})
-are equipped with encryption primitives for modeling security protocols.
-Here, we consider a basic version where terms only consists of names,
-as in the original development of the $\pi$-calculus~\cite{Milner92picalcI,Milner92picalcII}.
+% In general, $\pi$-calculus and its characterizing logic shares a common term
+% structure, which represents either communication channels or values that
+% are communicated through those channels. For instance, terms in some
+% applied variants of $\pi$-calculi (e.g., \cite{Abadi97ccs,AbaFou01appi})
+% are equipped with encryption primitives for modeling security protocols.
+% Here, we consider a basic version where terms only consist of names,
+% as in the original development of the $\pi$-calculus~\cite{Milner92picalcI,Milner92picalcII}.
 
+Since we consider only the original version of the $\pi$-calculus
+with name passing, terms (|Tm|) that can be sent through channel names consist
+only of names. 
 Processes (|Pr|) may contain bound names due to
 value passing and name restriction. In the Haskell definition,
 we define these name binding constructs with the generic binding
@@ -201,13 +204,18 @@ a nondeterministic choice between processes |(Plus p q)|,
 a name-restricted process |(Nu(x.\p))|, or
 a match-prefixed process |(Match x y p)|.
 
-|Null| means that the process is terminated so that it will never make
-any transitions with observable actions. Hence, there are no
-labeled transition rules from |Null| in Figure~\ref{fig:lts}.
+The operational semantics of the finite $\pi$-calculus is given
+in Figure~\ref{fig:lts}. Here we follow a style of
+specification~\cite{McDowell96} of the $\pi$-calculus where the
+continuation of an input or a bound output transition is
+represented as an abstraction over processes. 
 
+The process |Null| is a terminated process so that it will never make
+any transitions.
+%% Hence, there are no labeled transition rules from |Null|
+%% in Figure~\ref{fig:lts}.
 |(TauP p)| will make a (free) transition step evolving into |p|
 labeled with (free) action |Tau::Act|, that is, $|TauP p|\xone{|Tau|}|p|$.
-
 |(Out x y p)| will make a step evolving into |p| labeled with |Up x y::Act| and
 produces a value |y| on channel |x|, which can be consumed by another process
 expecting an input value on the same channel.
@@ -217,7 +225,6 @@ is provided on channel |x|. When an input value |v::Tm|\, is provided
 on the channel, at some point in time, the process consumes the value
 and evolves to |(subst y v p)|, which is a process where |(Var y)|
 inside |p| are substituted by |v|.
-
 This concept of a conditional step described above can be understood as if
 it steps to a bound process |(y.\p)::PrB|, waiting for an input value for |y|.
 It is called a bound step ($\xoneb{a_\textsc{b}}$) in contrast to
@@ -248,8 +255,8 @@ Forth {\small(close scope-ext)} is a bound interaction step similar to the third
 The differences from the third is that there is a bounded output (|UpB|)
 instead of a free ouput (|Up|\;) and that the resulting process becomes
 restricted with the name |x| from the output value |(V x)|.
-The bounded output comes from the very last rule {\small(open scope-ext)}
-for the name-restricted process we are about to explain.
+The bound output ({\small(open scope-ext)}) is driven by 
+name-restricted processes, as explained next.
 
 |Nu(x.\p)| restricts actions of |p| involving the restricted name |x| from
 being observed outside the scope restricted by |Nu|. For example, neither

@@ -254,7 +254,7 @@ We use the helper function |subs| to build a substitution function
 equality constraints (|sigma|). The substitution function (|sigmaSubs|)
 is used for testing name equivalence under the possible world given by |sigma|
 in the transition steps for the restricted process (|Nu(x.\p)|).
-The name (in)equality tests for the restricted process in Figure~\ref{fig:IdSubLTS}
+The name (in)equality test for the restricted process in Figure~\ref{fig:IdSubLTS}
 are now tested as (in)equality modulo substitution in Figure~\ref{fig:OpenLTS}.
 For instance, the equality tests against the restricted name (|x|) such as
 |x == x'| and |V{-"\!"-}x /= y| for the restricted process in Figure~\ref{fig:IdSubLTS}

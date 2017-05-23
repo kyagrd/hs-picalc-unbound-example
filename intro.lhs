@@ -56,7 +56,8 @@ the Mobility Workbench~\cite{VicMol94mwb}. In our work, this on-the-fly
 construction is basically encapsulated in Haskell's lazy evaluation of
 the search trees for distinguishing formulae. Another complicating factor is
 that in $\pi$-calculus, fresh names can be generated and extruded,
-and one needs to keep track the relative scoping of names. This is particularly
+and one needs to keep track of the relative scoping of names.
+This is particularly
 relevant in open bisimulation, where input names are treated symbolically
 (i.e., represented as variables), so care needs to be taken so that,
 for example, a variable representing an input name cannot be instantiated by
@@ -114,8 +115,9 @@ Let us visually examine whether each leading step meets the condition for bisimi
 and (4) also satisfies it by taking the right branch. Therefore, they are
 not open bisimilar ($P \not\sim_{\!o} Q$) due to the failure in (1).
 
-A bisimulation checking algorithm by depth first search scanning from left to
-right only needs to traverse the first tree (1) to notice non-bisimilarity.
+%% A bisimulation checking algorithm by
+A depth first search for bisimulation, scanning from left to
+right, only needs to traverse the first tree (1) to notice non-bisimilarity.
 Our existing bisimulation checker (prior to this work) is
 a higher-order logic program, which runs in this manner.
 However, the witness we want to generate contains extra information
@@ -126,14 +128,23 @@ is insufficient.
 The extra information {\small|sigma=[(x,y)]|} represents a substitution
 that unifies |x| and |y|. The third tree (3) considers the leading step
 initiated by the subprocess |Match x y (TauP (TauP Null))|, which
-is only possible to make a step in a world (or environment)
-where |x| and |y| are equivalent. Our existing implementation takes advantage of
-logic programming by representing |x| and |y| as unifiable logic variables and 
-by relying on backtracking for nondeterminism.
+%% is only possible to
+can only make a step in a world (or environment)
+where |x| and |y| are equivalent. Our earlier implementation uses
+a logic programming language,
+%% takes advantage of logic programming by representing
+relying on a representation of |x| and |y| as unifiable logic variables and 
+%% by relying
+on backtracking for nondeterminism.
 However, it is difficult to access |sigma| in this setting because |sigma|
-resides inside the system state rather than being a first-class value. Moreover,
+resides inside the system state rather than being a first-class value.
+Access to logic variable substitutions since the definition of
+open bisimulation and the generation of distinguishing formulae
+require access to and manipulations of such substitutions.
+Moreover,
 the information is lost when backtracking to another branch, for instance,
-from (3) to (4). 
+from (3) to (4).
+
 On the other hand, it is very natural in Haskell to view all possible
 nondeterministic steps as tree structured data because of laziness.
 Once we are able to produce the trees in Figure~\ref{fig:example}
@@ -178,7 +189,7 @@ symmetric cases, is laid out as figures (Figures~\ref{fig:PiCalc},\,\ref{fig:IdS
 \vspace*{.5ex}
 \item
 Our implementation of generating distinguishing formulae is a pragmatic evidence
-that reassures our recent theoretical establishment~\cite{AhnHorTiu17corr} of
+that reassures our recent theoretical development~\cite{AhnHorTiu17corr} of
 the modal logic \OM\ being a characterizing logic for open bisimilarity
 (i.e., distinguishing formulae exists iff non-open bisimilar). In this paper,
 we define the syntax of \OM\ formulae in Haskell and explain their intuitive

@@ -62,7 +62,9 @@ all possible partitions, starting from the distinct partition [[0],[1],[2]],
 by continually joining a pair of elements from different equivalence classes
 until all possible joining paths reaches [[0,1,2]] where all elements are joined.
 Although this brute force approach is a terminating algorithm, the number of
-partition sets grows too fast, exponential to the number of names \cite{Rota64bell}.
+partition sets is exponential to the number of names \cite{Rota64bell}.
+
+%% grows too fast, exponential to the number of names \cite{Rota64bell}.
 
 Since the original development of open bisimulation, \citet{Sangiorgi96acta}
 was well aware that enumerating all possible worlds is intractable and

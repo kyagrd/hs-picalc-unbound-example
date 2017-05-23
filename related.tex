@@ -60,24 +60,28 @@ during our distinguishing formulae generation in Section~\ref{sec:df}.%
 \vspace*{-1ex}
 \subsection{Tools for Checking Process Equivalence}
 \label{sec:relwork:tools}
-The mobility workbench~\cite{VicMol94mwb} is a tool for the $\pi$-calculus
-with features including open bisimulation checking. It is developed using
-an old version of SML/NJ.
-
-SPEC~\cite{TiuNamHor16spec} is a tool for security protocol verification based on
-automatic open bisimulation checking \cite{TiuDaw10} for the spi-calculus~\cite{Abadi97ccs},
-which is a variant of $\pi$-calculus whose terms are enriched by security primitives.
+There are various existing tools that implement bisimulation or
+other equivalence checking for variants and extensions of the $\pi$-calculus.
+None of these tools generate distinguishing formulae for open bisimulation. 
+The Mobility Workbench~\cite{VicMol94mwb} is a tool for the $\pi$-calculus
+with features including open bisimulation checking.
+It is developed using an old version of SML/NJ.
+SPEC~\cite{TiuNamHor16spec} is security protocol verifier based on
+open bisimulation checking \cite{TiuDaw10} for the spi-calculus~\cite{Abadi97ccs}.
+%% , which is a variant of $\pi$-calculus whose terms are enriched by security primitives.
 The core of SPEC including open bisimulation checking is specified by
 higher-order logic predicates in Bedwyr \cite{Bedwyr07} and the user interface
 is implemented in OCaml.
-
 ProVerif~\cite{BlaFou05} is another security protocol verifier based on
-the applied $\pi$-calculus~\cite{AbaFou01appi}, which is a generic framework of
-$\pi$-calculus insatiable by supplying the term syntax and its
-rewriting rules. ProVerif is implemented in OCaml.
-The notion of open bisimilarity is not trivially applicable to 
-the applied $\pi$-calculus due to its feature of active substitution,
-although there have been some developments~\cite{ZhuGuWu08}.
+the applied $\pi$-calculus~\cite{AbaFou01appi}. It implements a sound
+approximation of observational equivalence, but not bisimulation. 
+
+%% which is a generic framework of
+%% $\pi$-calculus insatiable by supplying the term syntax and its
+%% rewriting rules. ProVerif is implemented in OCaml.
+%% The notion of open bisimilarity is not trivially applicable to 
+%% the applied $\pi$-calculus due to its feature of active substitution,
+%% although there have been some developments~\cite{ZhuGuWu08}.
 
 There are few tools using Haskell for process equivalence.
 Most relevant work to our knowledge is the symbolic (early) bisimulation for
