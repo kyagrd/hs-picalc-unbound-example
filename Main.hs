@@ -298,30 +298,39 @@ pr2bdw Null = return "z"
 pr2bdw (TauP p) = (\p->"(taup "++p++")") <$> pr2bdw p
 pr2bdw (Out x y p) = (\x y p->"(out "++x++" "++y++" "++p++")")
                         <$> tm2bdw x <*> tm2bdw y <*> pr2bdw p
-pr2bdw (In x b) = undefined
+pr2bdw (In x b) = do (w,p) <- unbind b
+                     (\x w p->"(in "++x++" "++w++"\\"++p++")")
+                        <$> tm2bdw x <*> nm2bdw w <*> pr2bdw p
 pr2bdw (Match x y p) = (\x y p->"(match "++x++" "++y++" "++p++")")
                         <$> tm2bdw x <*> tm2bdw y <*> pr2bdw p
 pr2bdw (Plus p q) = (\p q->"(plus "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
 pr2bdw (Par p q) = (\p q->"(par "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
-pr2bdw (Nu b) = undefined
+pr2bdw (Nu b) = do (w,p) <- unbind b
+                   (\w p->"(nu "++w++"\\"++p++")") <$> nm2bdw w <*> pr2bdw p
 
 form2bdw :: Fresh m => Form -> m String
 form2bdw FF = return "ff"
 form2bdw TT = return "tt"
 form2bdw (Conj []) = form2bdw TT
 form2bdw (Conj [f]) = form2bdw f
-form2bdw (Conj fs) = foldr1 (\x y -> "(conj "++x++" "++y++")") <$>
-                       mapM form2bdw fs
+form2bdw (Conj fs) = foldr1 (\x y -> "(conj "++x++" "++y++")") <$> mapM form2bdw fs
 form2bdw (Disj []) = form2bdw FF
 form2bdw (Disj [f]) = form2bdw f
-form2bdw (Disj fs) = foldr1 (\x y -> "(disj "++x++" "++y++")") <$>
-                       mapM form2bdw fs
+form2bdw (Disj fs) = foldr1 (\x y -> "(disj "++x++" "++y++")") <$> mapM form2bdw fs
 form2bdw (Dia a f) = (\a f -> "(diaAct "++a++" "++f++")") <$> act2bdw a <*> form2bdw f
 form2bdw (Box a f) = (\a f -> "(boxAct "++a++" "++f++")") <$> act2bdw a <*> form2bdw f
-form2bdw (DiaB (UpB x) f) = undefined -- boxOut
-form2bdw (DiaB (DnB x) f) = undefined -- diaInL
-form2bdw (BoxB (UpB x) f) = undefined -- diaOut
-form2bdw (BoxB (DnB x) f) = undefined -- boxIn
+form2bdw (DiaB (UpB x) b) = do (w,f) <- unbind b
+                               (\x w f->"(diaOut "++x++" "++w++"\\"++f++")")
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+form2bdw (DiaB (DnB x) b) = do (w,f) <- unbind b
+                               (\x w f->"(diaInL "++x++" "++w++"\\"++f++")")
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+form2bdw (BoxB (UpB x) b) = do (w,f) <- unbind b
+                               (\x w f->"(boxOut "++x++" "++w++"\\"++f++")")
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+form2bdw (BoxB (DnB x) b) = do (w,f) <- unbind b
+                               (\x w f->"(boxIn "++x++" "++w++"\\"++f++")")
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
 form2bdw f@(DiaMatch [] _) = error (show f)
 form2bdw (DiaMatch cs f) =
   foldr (\(x,y) f -> "(diaMatch "++x++" "++" "++y++" "++f++")")
