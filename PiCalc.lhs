@@ -71,30 +71,6 @@ unbind2' b1 b2 = do  Just (x,p1,_,p2) <- unbind2 b1 b2
 o = Null
 taup = TauP
 nu = Nu
-
-nm2bdwyr :: Fresh m => Nm -> m String
-nm2bdwyr x = return $ name2String x++show(name2Integer x)
-
-tm2bdwyr :: Fresh m => Tm -> m String
-tm2bdwyr (Var x) = nm2bdwyr x
-
-form2bdwyr :: Fresh m => Form -> m String
-form2bdwyr FF = return "ff"
-form2bdwyr TT = return "tt"
-form2bdwyr (Conj []) = form2bdwyr TT
-form2bdwyr (Conj [f]) = form2bdwyr f
-form2bdwyr (Conj fs) = foldr1 (\x y -> "(conj "++x++" "++y++")") <$>
-                       mapM form2bdwyr fs
-form2bdwyr (Disj []) = form2bdwyr FF
-form2bdwyr (Disj [f]) = form2bdwyr f
-form2bdwyr (Disj fs) = foldr1 (\x y -> "(disj "++x++" "++y++")") <$>
-                       mapM form2bdwyr fs
-form2bdwyr (Dia a f) = undefined
-form2bdwyr (Box a f) = undefined
-form2bdwyr (DiaB a f) = undefined
-form2bdwyr (BoxB a f) = undefined
-form2bdwyr (DiaMatch cs f) = undefined
-form2bdwyr (BoxMatch cs f) = undefined
 \end{code}
 %endif    %%%% END   omit from LaTEX %%%%%%%%%%%%%%%%%%
 

@@ -279,6 +279,58 @@ dosomething5 = do
     p = Nu$x.\(out x a o)
 
 
+nm2bdw :: Fresh m => Nm -> m String
+nm2bdw x = return $ show x
+
+tm2bdw :: Fresh m => Tm -> m String
+tm2bdw (Var x) = nm2bdw x
+
+act2bdw :: Fresh m => Act -> m String
+act2bdw Tau = return "tau"
+act2bdw (Up x y) = (\x y -> "(up "++x++" "++y++")") <$> tm2bdw x <*> tm2bdw y
+
+actb2bdw :: Fresh m => ActB -> m String
+actb2bdw (UpB x) = (\x -> "(up "++x++")") <$> (tm2bdw x)
+actb2bdw (DnB x) = (\x -> "(dn "++x++")") <$> (tm2bdw x)
+
+pr2bdw :: Fresh m => Pr -> m String
+pr2bdw Null = return "z"
+pr2bdw (TauP p) = (\p->"(taup "++p++")") <$> pr2bdw p
+pr2bdw (Out x y p) = (\x y p->"(out "++x++" "++y++" "++p++")")
+                        <$> tm2bdw x <*> tm2bdw y <*> pr2bdw p
+pr2bdw (In x b) = undefined
+pr2bdw (Match x y p) = (\x y p->"(match "++x++" "++y++" "++p++")")
+                        <$> tm2bdw x <*> tm2bdw y <*> pr2bdw p
+pr2bdw (Plus p q) = (\p q->"(plus "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
+pr2bdw (Par p q) = (\p q->"(par "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
+pr2bdw (Nu b) = undefined
+
+form2bdw :: Fresh m => Form -> m String
+form2bdw FF = return "ff"
+form2bdw TT = return "tt"
+form2bdw (Conj []) = form2bdw TT
+form2bdw (Conj [f]) = form2bdw f
+form2bdw (Conj fs) = foldr1 (\x y -> "(conj "++x++" "++y++")") <$>
+                       mapM form2bdw fs
+form2bdw (Disj []) = form2bdw FF
+form2bdw (Disj [f]) = form2bdw f
+form2bdw (Disj fs) = foldr1 (\x y -> "(disj "++x++" "++y++")") <$>
+                       mapM form2bdw fs
+form2bdw (Dia a f) = (\a f -> "(diaAct "++a++" "++f++")") <$> act2bdw a <*> form2bdw f
+form2bdw (Box a f) = (\a f -> "(boxAct "++a++" "++f++")") <$> act2bdw a <*> form2bdw f
+form2bdw (DiaB (UpB x) f) = undefined -- boxOut
+form2bdw (DiaB (DnB x) f) = undefined -- diaInL
+form2bdw (BoxB (UpB x) f) = undefined -- diaOut
+form2bdw (BoxB (DnB x) f) = undefined -- boxIn
+form2bdw f@(DiaMatch [] _) = error (show f)
+form2bdw (DiaMatch cs f) =
+  foldr (\(x,y) f -> "(diaMatch "++x++" "++" "++y++" "++f++")")
+    <$> form2bdw f <*> sequence [(,)<$>tm2bdw x<*>tm2bdw y|(x,y)<-cs]
+form2bdw f@(BoxMatch [] _) = error (show f)
+form2bdw (BoxMatch cs f) =
+  foldr (\(x,y) f -> "(boxMatch "++x++" "++" "++y++" "++f++")")
+    <$> form2bdw f <*> sequence [(,)<$>tm2bdw x<*>tm2bdw y|(x,y)<-cs]
+
 {-
 *Main Lib> :t runFreshMT (one p1)
 runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)

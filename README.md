@@ -105,3 +105,51 @@ Right (One [All y, All x] [] Tau Null)
 (Dia Tau (Dia Tau TT),
  Box Tau (Disj[DiaMatch [(Var x, Var y)] TT, Box Tau FF]))
 ```
+
+## Converting to Bedwyr syntax definition for satisfaction check
+The distinguishing formulae above can be converted into Bedwyr syntax definition
+to check whether each process satisfies each formula as follows:
+```
+*Main> let f1 = fst . head . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
+*Main> 
+*Main> let f2 = snd . head . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
+*Main> let bp1 = bind (quan2nm<$>axay :: [Nm]) (taup tau .+ tau)
+*Main> let bf1 = bind (quan2nm<$>axay :: [Nm]) f1
+*Main> let bp2 = bind (quan2nm<$>axay :: [Nm]) ((x.= y) (taup tau) .+ tau)
+*Main> let bf2 = bind (quan2nm<$>axay :: [Nm]) f2
+*Main> putStrLn . runFreshM $ do (xs,p,f)<-unbind2' bp2 bf2; proc<-pr2bdw p; form<-form2bdw f; return $ "forall "++concat(Data.List.intersperse " " $ map show xs)++", sat "++proc++" "++form++"."
+forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
+*Main> putStrLn . runFreshM $ do (xs,p,f)<-unbind2' bp1 bf1; proc<-pr2bdw p; form<-form2bdw f; return $ "forall "++concat(Data.List.intersperse " " $ map show xs)++", sat "++proc++" "++form++"."
+forall y1 x, sat (plus (taup (taup z)) (taup z)) (diaAct tau (diaAct tau tt)).
+*Main> putStrLn . runFreshM $ do (xs,p,f)<-unbind2' bp1 bf2; proc<-pr2bdw p; form<-form2bdw f; return $ "forall "++concat(Data.List.intersperse " " $ map show xs)++", sat "++proc++" "++form++"."
+forall y1 x, sat (plus (taup (taup z)) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
+*Main> putStrLn . runFreshM $ do (xs,p,f)<-unbind2' bp2 bf1; proc<-pr2bdw p; form<-form2bdw f; return $ "forall "++concat(Data.List.intersperse " " $ map show xs)++", sat "++proc++" "++form++"."
+forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (diaAct tau (diaAct tau tt)).
+*Main> 
+```
+The generated proposition (`forall y1 x, ...`) can be checked using Bedwyr as follows:
+```
+~/github/kyagrd/NonBisim2DF/pic$ rlwrap ./bedwyr pi_modal.def 
+[Warning] Now including "pi_modal.def".
+[Warning] Now including "pi.def".
+...
+Bedwyr 1.4-beta13 (revision 1080) welcomes you.
+
+For a little help, type "#help."
+
+?= forall y1 x, sat (plus (taup (taup z)) (taup z)) (diaAct tau (diaAct tau tt)).
+Found a solution.
+More [y] ? 
+No more solutions (found 1).
+?= forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
+Found a solution.
+More [y] ? 
+No more solutions (found 1).
+?= forall y1 x, sat (plus (taup (taup z)) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
+No solution.
+?= forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (diaAct tau (diaAct tau tt)).
+No solution.
+```
+As expected, each distinguishing formula satisfies one of the processes but not the other.
+The Bedwyr implementation of the OM formula checker is availiable at
+https://github.com/kyagrd/NonBisim2DF/tree/master/pic
