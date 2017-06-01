@@ -3,6 +3,8 @@
 This directory contains literate Haskell program that is both a source code
 of a program and of a document.
 
+The document has been archived on https://arxiv.org/abs/1705.10908
+
 ## to build the document
 To compile the document you need [lhs2TeX](http://hackage.haskell.org/package/lhs2tex),
 which preprocesses literate Haskell programs into LaTeX files.
