@@ -3,7 +3,8 @@
 This directory contains literate Haskell program that is both a source code
 of a program and of a document.
 
-<!-- The document has been archived on https://arxiv.org/abs/1705.10908
+The document has been archived on https://arxiv.org/abs/1705.10908
+<!-- 
  * Errata: In the symbolic transition semantics (Figure 5), we should return
  ![hatsimgap'](https://latex.codecogs.com/gif.latex?x%5C%2C.%5C%21%5Cbackslash%5C%2C%5Chat%5Csigma%5C%3Bp%27)
  instead of ![sigma](https://latex.codecogs.com/gif.latex?x%5C%2C.%5C%21%5Cbackslash%5C%2Cp%27) 
