@@ -7,13 +7,6 @@ The document has been archived on https://arxiv.org/abs/1705.10908
  * Errata
     * `fv(a_B)` instead of `fv(a)` for the bounded action for name-restricted processes in Figure 3.
     * In Figures 4 and 5, it would be more consistent with the naming convention to write `In x b` rather than `In x p`.
-<!--  In the symbolic transition semantics (Figure 5), we should return
- ![hatsimgap'](https://latex.codecogs.com/gif.latex?x%5C%2C.%5C%21%5Cbackslash%5C%2C%5Chat%5Csigma%5C%3Bp%27)
- instead of ![sigma](https://latex.codecogs.com/gif.latex?x%5C%2C.%5C%21%5Cbackslash%5C%2Cp%27) 
- at the end of the definition of `oneB`. We do not want a bound varaible
- accidentally become free, for instance, `x.\x + x'` when `x` and `x'` are unified.
- For such cases, we must apply the substitition to replace `x'` to `x` before the binding.
--->
 
 ## to build the document
 To compile the document you need [lhs2TeX](http://hackage.haskell.org/package/lhs2tex),
