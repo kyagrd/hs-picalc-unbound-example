@@ -3,32 +3,44 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OpenLTS where
-import PiCalc; import Control.Applicative; import Control.Monad
-import Data.Partition hiding (empty)
-import Unbound.LocallyNameless hiding (empty, rep, GT)
-import Data.Map.Strict (fromList, (!))
+import           Control.Applicative
+import           Control.Monad
+import           Data.Map.Strict         (fromList, (!))
+import           Data.Partition          hiding (empty, rep)
+import qualified Data.Partition          as P
+import           PiCalc
+import           Unbound.LocallyNameless hiding (GT, empty)
 
 type EqC = [(Nm,Nm)]
-infixr 5 .:  (.:) :: (Nm,Nm) -> EqC -> EqC
+infixr 5 .:
+(.:) :: (Nm,Nm) -> EqC -> EqC
 (x,y) .: sigma = case compare x y of  LT -> [(x,y)] .++ sigma
                                       EQ -> sigma
                                       GT -> [(y,x)] .++ sigma
-infixr 5 .++  (.++) = union
+infixr 5 .++
+(.++) = union
 
 type Ctx = [Quan]
 data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show)
-quan2nm :: Quan -> Nm;  quan2nm (Nab x)  = x
+quan2nm :: Quan -> Nm
+quan2nm (All x) = x
+quan2nm (Nab x) = x
+
+$(derive [''Quan])
+instance Alpha Quan
+instance Subst Tm Quan
 
 respects :: EqC -> Ctx -> Bool
-respects sigma nctx = all (\n -> rep part n == n) [n2i x | Nab x <- nctx]
+respects sigma nctx = all (\n -> P.rep part n == n) [n2i x | Nab x <- nctx]
   where (part, (n2i, _)) = mkPartitionFromEqC nctx sigma
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
-subs nctx sigma = foldr (.) id [subst x ((Vary)) | (x,y)<-sigma']
-  where  sigma' = [(i2n i, i2n $ rep part i) | i<-[0..maxVal]]
+subs nctx sigma = foldr (.) id [subst x (Var y) | (x,y)<-sigma']
+  where  sigma' = [(i2n i, i2n $ P.rep part i) | i<-[0..maxVal]]
          (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
          maxVal = length nctx - 1
 
@@ -40,7 +52,7 @@ mkPartitionFromEqC nctx sigma = (part, (n2i, i2n))
                discrete
     i2n i = revns !! i
     n2i x = n2iMap ! x
-    revns = reverse (quan2nm <$> nctx)
+    revns = reverse (fv nctx)
     n2iMap = fromList $ zip revns [0..maxVal]
     maxVal = length nctx - 1
 
@@ -96,7 +108,7 @@ oneb nctx (Match (Var x) (Var y) p)  | x == y                   = oneb nctx p
                                                guard $ sigma' `respects` nctx
                                                return (sigma', r)
 oneb nctx (Plus p q) = oneb nctx p <|> oneb nctx q
-oneb nctx (Par p q) = 
+oneb nctx (Par p q) =
        do (sigma,(l,(x,p'))) <- oneb' nctx p;  return (sigma,(l, x.\Par p' q))
   <|>  do (sigma,(l,(x,q'))) <- oneb' nctx q;  return (sigma,(l, x.\Par p q'))
 oneb nctx (Nu b)  =    do  (x,p) <- unbind b;                    let nctx' = Nab x : nctx
@@ -111,4 +123,3 @@ oneb nctx (Nu b)  =    do  (x,p) <- unbind b;                    let nctx' = Nab
 oneb _    _ = empty
 
 oneb' nctx p = do (sigma,(l,b)) <- oneb nctx p; r <- unbind b; return (sigma,(l,r))
-

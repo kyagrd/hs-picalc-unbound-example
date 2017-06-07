@@ -23,7 +23,7 @@ data Act   = Up Tm Tm  | Tau     deriving (Eq, Ord, Show)
 data ActB  = UpB Tm    | DnB Tm  deriving (Eq, Ord, Show)
 
 data Form  = FF | TT | Conj [Form] | Disj [Form]
-           | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form 
+           | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form
            | Box  Act Form  |  BoxB  ActB FormB   | BoxMatch [(Tm,Tm)] Form
            deriving (Eq,Ord,Show)
 type FormB = Bind Nm Form
@@ -32,17 +32,21 @@ instance Ord FormB where compare = acompare
 
 $(derive [''Tm, ''Act, ''ActB, ''Pr, ''Form])
 
-instance Alpha Tm;  instance Alpha ActB
-instance Alpha Pr;   instance Alpha Form
+instance Alpha Tm; instance Alpha Act; instance Alpha ActB
+instance Alpha Pr; instance Alpha Form
 
 instance Subst Tm Tm where isvar (Var x) = Just (SubstName x)
 instance Subst Tm Act;  instance Subst Tm ActB
 instance Subst Tm Pr;  instance Subst Tm Form
 
-infixr 1 .\  (.\) = bind
+infixr 1 .\
+(.\) = bind
 
-x .= y = Match (Var x) (Var y)  out x y = Out(Var x)(Var y)
-tau = TauP Null  tautau = TauP (TauP Null)
+x .= y = Match (Var x) (Var y)
+inp = In . Var
+out x y = Out(Var x)(Var y)
+tau = TauP Null
+tautau = TauP (TauP Null)
 
 conj  = cn . filter(/=TT) where cn  [] = TT; cn  [f] = f; cn  fs = Conj fs
 disj  = ds . filter(/=FF) where ds  [] = FF; ds  [f] = f; ds  fs = Disj fs
@@ -54,4 +58,3 @@ unbind2' b1 b2 = do  Just (x,p1,_,p2) <- unbind2 b1 b2
 o = Null
 taup = TauP
 nu = Nu
-

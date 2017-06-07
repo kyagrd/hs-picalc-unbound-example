@@ -6,9 +6,13 @@
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OpenBisim where
-import PiCalc; import Control.Applicative; import Control.Monad
-import OpenLTS; import qualified IdSubLTS; import Data.Tree
-import Unbound.LocallyNameless hiding (empty)
+import           Control.Applicative
+import           Control.Monad
+import           Data.Tree
+import qualified IdSubLTS
+import           OpenLTS
+import           PiCalc
+import           Unbound.LocallyNameless hiding (empty)
 
 data StepLog  =  One   Ctx EqC Act   Pr
               |  OneB  Ctx EqC ActB  PrB  deriving (Eq,Ord,Show)
@@ -27,13 +31,13 @@ sim_ nctx p q  =    do  (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs = s
                           return . (and :: [Bool] -> Bool) $ sim_ nctx p' q'
                <|>  do  (sigma, r) <- runFreshMT (oneb nctx p); let sigmaSubs = subs nctx sigma
                         let (lp, bp') = sigmaSubs r
-                        let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bp'
+                        let x' = runFreshM $ freshFrom (fv nctx) bp'
                         return . (or :: [Bool] -> Bool) . runFreshMT $ do
                           (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
                           guard $ lp == lq
                           (x, q1, p1) <- unbind2' bq' bp'
                           let (p', q')  | x == x'    = (p1, q1)
-                                        | otherwise  = subst x ((Varx')) (p1, q1)
+                                        | otherwise  = subst x ((Var x')) (p1, q1)
                           let nctx' = case lp of   DnB _ -> All x' : nctx
                                                    UpB _ -> Nab x' : nctx
                           return . (and :: [Bool] -> Bool) $ sim_ nctx' p' q'
@@ -47,13 +51,13 @@ sim' nctx p q   =     do   (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs 
                              returnR (One nctx sigma lq q') $ sim' nctx p' q'
                 <|>   do   (sigma, r) <- runFreshMT (oneb nctx p); let sigmaSubs = subs nctx sigma
                            let (lp, bp') = sigmaSubs r
-                           let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bp'
+                           let x' = runFreshM $ freshFrom (fv nctx) bp'
                            returnL (OneB nctx sigma lp bp') . runFreshMT $ do
                              (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
                              guard $ lp == lq
                              (x, p1, q1) <- unbind2' bp' bq'
                              let (p', q')   | x == x'    = (p1, q1)
-                                            | otherwise  = subst x ((Varx')) (p1, q1)
+                                            | otherwise  = subst x ((Var x')) (p1, q1)
                              let nctx' = case lp of   DnB _ -> All x' : nctx
                                                       UpB _ -> Nab x' : nctx
                              returnR (OneB nctx sigma lq bq') $ sim' nctx' p' q'
@@ -72,7 +76,7 @@ bisim_ nctx p q =
   <|>
   do (sigma, r) <- runFreshMT (oneb nctx p)
      let (lp, bp') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bp' -- to use same new quan var
+     let x' = runFreshM $ freshFrom (fv nctx) bp' -- to use same new quan var
      return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, bq') <-IdSubLTS.oneb (subs nctx sigma q) -- follow with same sub and label
        guard $ lp == lq
@@ -92,7 +96,7 @@ bisim_ nctx p q =
   <|>
   do (sigma, r) <- runFreshMT (oneb nctx q)
      let (lq, bq') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bq' -- to use same new quan var
+     let x' = runFreshM $ freshFrom (fv nctx) bq' -- to use same new quan var
      return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lp, bp') <-IdSubLTS.oneb (subs nctx sigma p) -- follow with same sub and label
        guard $ lp == lq
@@ -114,7 +118,7 @@ bisim' nctx p q =
   <|>
   do (sigma, r) <- runFreshMT (oneb nctx p)
      let (lp, bp') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bp' -- to use same new quan var
+     let x' = runFreshM $ freshFrom (fv nctx) bp' -- to use same new quan var
      returnL (OneB nctx sigma lp bp') . runFreshMT $ do
        (lq, bq') <-IdSubLTS.oneb (subs nctx sigma q) -- follow with same sub and label
        guard $ lp == lq
@@ -134,7 +138,7 @@ bisim' nctx p q =
   <|>
   do (sigma, r) <- runFreshMT (oneb nctx q)
      let (lq, bq') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (quan2nm<$>nctx) bq' -- to use same new quan var
+     let x' = runFreshM $ freshFrom (fv nctx) bq' -- to use same new quan var
      returnR (OneB nctx sigma lq bq') . runFreshMT $ do
        (lp, bp') <-IdSubLTS.oneb (subs nctx sigma p) -- follow with same sub and label
        guard $ lp == lq
@@ -144,18 +148,18 @@ bisim' nctx p q =
        let nctx' = case lp of DnB _ -> All x' : nctx
                               UpB _ -> Nab x' : nctx
        returnL (OneB nctx sigma lp bp') $ bisim' nctx' p' q'
-forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)] 
+forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)]
 forest2df rs
             =    do  Node (Left (One _ sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingAct a (right1s rs)
-                     return (prebase sigma_p a  postbase sigmaqs a)
+                     return (prebase sigma_p a, postbase sigmaqs a)
             <|>  do  Node (Right (One _ sigma_q a _)) [] <- rs
                      let formR = prebase sigma_q a
                      let sigmaps = subsMatchingAct a (left1s rs)
                      return (postbase sigmaps a, formR)
             <|>  do  Node (Left (OneB _ sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingActB a (right1Bs rs)
-                     return (preBbase sigma_p a  postBbase sigmaqs a)
+                     return (preBbase sigma_p a, postBbase sigmaqs a)
             <|>  do  Node (Right (OneB _ sigma_q a _)) [] <- rs
                      let formR = preBbase sigma_q a
                      let sigmaps = subsMatchingActB a (left1Bs rs)
@@ -165,7 +169,7 @@ forest2df rs
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
                      guard . not . null $ dfsL
                      let sigmaqs = subsMatchingAct a (right1s rs)
-                     return (pre sigma_p a dfsL  post sigmaqs a dfsR)
+                     return (pre sigma_p a dfsL, post sigmaqs a dfsR)
             <|>  do  Node (Right (One _ sigma_q a _)) rsL <- rs
                      let rss' = [rs' | Node _ rs' <- rsL]
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
@@ -179,7 +183,7 @@ forest2df rs
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
                      guard . not . null $ dfsL
                      let sigmaqs = subsMatchingActB a (right1Bs rs)
-                     return (preB sigma_p a x dfsL  postB sigmaqs a x dfsR)
+                     return (preB sigma_p a x dfsL, postB sigmaqs a x dfsR)
             <|>  do  Node (Right (OneB nctx sigma_q a _)) rsL <- rs
                      let  rss' = [rs' | Node _ rs' <- rsL]
                           x = quan2nm . head . getCtx . fromEither . rootLabel
@@ -208,11 +212,10 @@ forest2df rs
 
 subsMatchingAct :: Act -> [StepLog] -> [EqC]
 subsMatchingAct a logs =
-  do  One nctx sigma a' _ <-logs             let sigmaSubs = subs nctx sigma
-      guard $ sigmaSubs a == sigmaSubs a'    return sigma
+  do  One nctx sigma a' _ <-logs          ;  let sigmaSubs = subs nctx sigma
+      guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
 
 subsMatchingActB :: ActB -> [StepLog] -> [EqC]
 subsMatchingActB a logs =
-  do  OneB nctx sigma a' _ <-logs            let sigmaSubs = subs nctx sigma
-      guard $ sigmaSubs a == sigmaSubs a'    return sigma
-
+  do  OneB nctx sigma a' _ <-logs         ;  let sigmaSubs = subs nctx sigma
+      guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
