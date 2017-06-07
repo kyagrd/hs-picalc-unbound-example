@@ -33,7 +33,7 @@ sim_ nctx p q  =    do  (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs = s
                           guard $ lp == lq
                           (x, q1, p1) <- unbind2' bq' bp'
                           let (p', q')  | x == x'    = (p1, q1)
-                                        | otherwise  = subst x ((Var{-"\!"-}x')) (p1, q1)
+                                        | otherwise  = subst x ((Varx')) (p1, q1)
                           let nctx' = case lp of   DnB _ -> All x' : nctx
                                                    UpB _ -> Nab x' : nctx
                           return . (and :: [Bool] -> Bool) $ sim_ nctx' p' q'
@@ -53,7 +53,7 @@ sim' nctx p q   =     do   (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs 
                              guard $ lp == lq
                              (x, p1, q1) <- unbind2' bp' bq'
                              let (p', q')   | x == x'    = (p1, q1)
-                                            | otherwise  = subst x ((Var{-"\!"-}x')) (p1, q1)
+                                            | otherwise  = subst x ((Varx')) (p1, q1)
                              let nctx' = case lp of   DnB _ -> All x' : nctx
                                                       UpB _ -> Nab x' : nctx
                              returnR (OneB nctx sigma lq bq') $ sim' nctx' p' q'
@@ -144,18 +144,18 @@ bisim' nctx p q =
        let nctx' = case lp of DnB _ -> All x' : nctx
                               UpB _ -> Nab x' : nctx
        returnL (OneB nctx sigma lp bp') $ bisim' nctx' p' q'
-forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)] {-"\hspace{10ex}"-}
+forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)] 
 forest2df rs
             =    do  Node (Left (One _ sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingAct a (right1s rs)
-                     return (prebase sigma_p a {-"\,"-},{-"\;"-} postbase sigmaqs a)
+                     return (prebase sigma_p a  postbase sigmaqs a)
             <|>  do  Node (Right (One _ sigma_q a _)) [] <- rs
                      let formR = prebase sigma_q a
                      let sigmaps = subsMatchingAct a (left1s rs)
                      return (postbase sigmaps a, formR)
             <|>  do  Node (Left (OneB _ sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingActB a (right1Bs rs)
-                     return (preBbase sigma_p a {-"\,"-},{-"\;"-} postBbase sigmaqs a)
+                     return (preBbase sigma_p a  postBbase sigmaqs a)
             <|>  do  Node (Right (OneB _ sigma_q a _)) [] <- rs
                      let formR = preBbase sigma_q a
                      let sigmaps = subsMatchingActB a (left1Bs rs)
@@ -165,7 +165,7 @@ forest2df rs
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
                      guard . not . null $ dfsL
                      let sigmaqs = subsMatchingAct a (right1s rs)
-                     return (pre sigma_p a dfsL {-"\,"-},{-"\;"-} post sigmaqs a dfsR)
+                     return (pre sigma_p a dfsL  post sigmaqs a dfsR)
             <|>  do  Node (Right (One _ sigma_q a _)) rsL <- rs
                      let rss' = [rs' | Node _ rs' <- rsL]
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
@@ -179,7 +179,7 @@ forest2df rs
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
                      guard . not . null $ dfsL
                      let sigmaqs = subsMatchingActB a (right1Bs rs)
-                     return (preB sigma_p a x dfsL {-"\,"-},{-"\;"-} postB sigmaqs a x dfsR)
+                     return (preB sigma_p a x dfsL  postB sigmaqs a x dfsR)
             <|>  do  Node (Right (OneB nctx sigma_q a _)) rsL <- rs
                      let  rss' = [rs' | Node _ rs' <- rsL]
                           x = quan2nm . head . getCtx . fromEither . rootLabel
@@ -194,9 +194,9 @@ forest2df rs
     preBbase sigma a = preB sigma a (s2n "?") []
     postBbase sigmas a = postB sigmas a (s2n "?") []
     pre sigma a = boxMat sigma . Dia a . conj
-    post sigmas a fs = Box a . disj $ {-"\,"-} (diaMat<$>sigmas) ++ fs
+    post sigmas a fs = Box a . disj $  (diaMat<$>sigmas) ++ fs
     preB sigma a x = boxMat sigma . DiaB a . bind x . conj
-    postB sigmas a x fs = BoxB a . bind x . disj $ {-"\,"-} (diaMat<$>sigmas) ++ fs
+    postB sigmas a x fs = BoxB a . bind x . disj $  (diaMat<$>sigmas) ++ fs
     boxMat  [] = id; boxMat  sigma = BoxMatch [(Var x,Var y) | (x,y)<-sigma]
     diaMat  [] = FF; diaMat  sigma = DiaMatch [(Var x,Var y) | (x,y)<-sigma] TT
     right1s  rs = [log | Node (Right  log@(One{})) _ <- rs]
@@ -208,11 +208,11 @@ forest2df rs
 
 subsMatchingAct :: Act -> [StepLog] -> [EqC]
 subsMatchingAct a logs =
-  do  One nctx sigma a' _ <-logs           {-"\;"-};{-"~"-}  let sigmaSubs = subs nctx sigma
-      guard $ sigmaSubs a == sigmaSubs a'  {-"\;"-};{-"~"-}  return sigma
+  do  One nctx sigma a' _ <-logs             let sigmaSubs = subs nctx sigma
+      guard $ sigmaSubs a == sigmaSubs a'    return sigma
 
 subsMatchingActB :: ActB -> [StepLog] -> [EqC]
 subsMatchingActB a logs =
-  do  OneB nctx sigma a' _ <-logs          {-"\;"-};{-"~"-}  let sigmaSubs = subs nctx sigma
-      guard $ sigmaSubs a == sigmaSubs a'  {-"\;"-};{-"~"-}  return sigma
+  do  OneB nctx sigma a' _ <-logs            let sigmaSubs = subs nctx sigma
+      guard $ sigmaSubs a == sigmaSubs a'    return sigma
 

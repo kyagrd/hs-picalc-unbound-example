@@ -12,22 +12,22 @@ import Unbound.LocallyNameless hiding (empty, rep, GT)
 import Data.Map.Strict (fromList, (!))
 
 type EqC = [(Nm,Nm)]
-infixr 5 .: {-"\;"-}; {-"\;"-} (.:) :: (Nm,Nm) -> EqC -> EqC
+infixr 5 .:  (.:) :: (Nm,Nm) -> EqC -> EqC
 (x,y) .: sigma = case compare x y of  LT -> [(x,y)] .++ sigma
                                       EQ -> sigma
                                       GT -> [(y,x)] .++ sigma
-infixr 5 .++ {-"\;"-}; {-"\;"-} (.++) :: EqC -> EqC -> EqC; {-"\;"-} (.++) = union
+infixr 5 .++  (.++) = union
 
 type Ctx = [Quan]
 data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show)
-quan2nm :: Quan -> Nm; {-"\,"-} quan2nm (All x)  = x; {-"\,"-} quan2nm (Nab x)  = x
+quan2nm :: Quan -> Nm;  quan2nm (Nab x)  = x
 
 respects :: EqC -> Ctx -> Bool
 respects sigma nctx = all (\n -> rep part n == n) [n2i x | Nab x <- nctx]
   where (part, (n2i, _)) = mkPartitionFromEqC nctx sigma
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
-subs nctx sigma = foldr (.) id [subst x ((Var{-"\!"-}y)) | (x,y)<-sigma']
+subs nctx sigma = foldr (.) id [subst x ((Vary)) | (x,y)<-sigma']
   where  sigma' = [(i2n i, i2n $ rep part i) | i<-[0..maxVal]]
          (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
          maxVal = length nctx - 1
@@ -57,10 +57,10 @@ one nctx  (Match (Var x) (Var y) p)  | x == y                   = one nctx p
                                                return (sigma', r)
 one nctx  (Plus p q) = one nctx p <|> one nctx q
 one nctx  (Par p q)
-  =    do  (sigma,(l,p')) <- one nctx p; {-"~$~$"-} return (sigma,(l,Par p' q))
-  <|>  do  (sigma,(l,q')) <- one nctx q; {-"~$~$"-} return (sigma,(l,Par p q'))
-  <|>  do  (sigma_p,(lp,bp)) <- oneb nctx p; {-"~$~$"-} (sigma_q,(lq,bq)) <- oneb nctx q
-           case (lp, lq) of            {-"\quad\!\!"-} -- close
+  =    do  (sigma,(l,p')) <- one nctx p;  return (sigma,(l,Par p' q))
+  <|>  do  (sigma,(l,q')) <- one nctx q;  return (sigma,(l,Par p q'))
+  <|>  do  (sigma_p,(lp,bp)) <- oneb nctx p;  (sigma_q,(lq,bq)) <- oneb nctx q
+           case (lp, lq) of             -- close
              (DnB(Var x),UpB(Var x'))  -> do  (y, q', p') <-  unbind2' bq bp
                                               let sigma' = (x,x') .: sigma_p .++ sigma_q
                                               guard $ sigma' `respects` nctx
@@ -71,7 +71,7 @@ one nctx  (Par p q)
                                               return (sigma', (Tau, Nu(y.\Par p' q')))
              _                         -> empty
   <|>  do  (sigma_p, (Up (Var x) v, p')) <- one nctx p
-           (sigma_q, (DnB (Var x'), bq)) <- oneb nctx q; {-""-} (y, q') <- unbind bq
+           (sigma_q, (DnB (Var x'), bq)) <- oneb nctx q;  (y, q') <- unbind bq
            let sigma' = (x,x') .: sigma_p .++ sigma_q
            guard $ sigma' `respects` nctx
            return (sigma', (Tau, Par p' (subst y v q'))) -- interaction
@@ -97,8 +97,8 @@ oneb nctx (Match (Var x) (Var y) p)  | x == y                   = oneb nctx p
                                                return (sigma', r)
 oneb nctx (Plus p q) = oneb nctx p <|> oneb nctx q
 oneb nctx (Par p q) = 
-       do (sigma,(l,(x,p'))) <- oneb' nctx p; {-"~$~$"-} return (sigma,(l, x.\Par p' q))
-  <|>  do (sigma,(l,(x,q'))) <- oneb' nctx q; {-"~$~$"-} return (sigma,(l, x.\Par p q'))
+       do (sigma,(l,(x,p'))) <- oneb' nctx p;  return (sigma,(l, x.\Par p' q))
+  <|>  do (sigma,(l,(x,q'))) <- oneb' nctx q;  return (sigma,(l, x.\Par p q'))
 oneb nctx (Nu b)  =    do  (x,p) <- unbind b;                    let nctx' = Nab x : nctx
                            (sigma,(l,(y,p'))) <- oneb' nctx' p;  let sigmaSubs = subs nctx' sigma
                            case l of  UpB (Var x')  | x == sigmaSubs x' -> empty
