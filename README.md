@@ -1,6 +1,6 @@
 # hs-picalc-unbound-example
 
-This program implements Open Bisimiulation of the pi-calculus and its disginguishing formulae in the modal logic OM.
+This program implements open bisimiulation of the pi-calculus and automatic generation of disginguishing formulae in the modal logic OM.
 
 ## To build the project
 
