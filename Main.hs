@@ -8,15 +8,15 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
-import qualified IdSubLTS                as IdS 
-import           OpenLTS
-import           OpenBisim
-import           PiCalc
-import           SubstLatt               (someFunc)
-import           Unbound.LocallyNameless
 import           Data.Tree
+import qualified IdSubLTS                       as IdS
+import           OpenBisim
+import           OpenLTS
+import           PiCalc
+import           SubstLatt                      (someFunc)
 import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
+import           Unbound.LocallyNameless
 
 {-# ANN module "HLint: ignore Use fmap" #-}
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -88,10 +88,10 @@ instance Pretty Form where
   pPrintPrec l r (BoxB a f) = maybeParens (r > appPrec) $
             text "BoxB" <+> ppp a <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (DiaB a f) = maybeParens (r > appPrec) $ 
+  pPrintPrec l r (DiaB a f) = maybeParens (r > appPrec) $
             text "DiaB" <+> ppp a <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (BoxMatch sigma f) = maybeParens (r > appPrec) $   
+  pPrintPrec l r (BoxMatch sigma f) = maybeParens (r > appPrec) $
             text "BoxMatch" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
   pPrintPrec l r (DiaMatch sigma f) = maybeParens (r > appPrec) $
@@ -133,6 +133,7 @@ printLateOneFrom p = do
 printOpenOneFrom nctx p = do
   putStrLn $ "one step from: " ++ show (reverse nctx) ++ " "++ render1line (pPrint p)
   mapM_ pp (runFreshMT (one nctx p) :: [([(Nm,Nm)],(Act,Pr))])
+
 
 main :: IO ()
 main = do
@@ -211,7 +212,7 @@ main = do
   mapM_ pp . forest2df $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
   putStrLn "================================================================"
   print $ bisim axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
-  putStrLn . showForest $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau) 
+  putStrLn . showForest $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
   mapM_ pp . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
   putStrLn "================================================================"
   print $ bisim [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
@@ -286,7 +287,7 @@ tm2bdw :: Fresh m => Tm -> m String
 tm2bdw (Var x) = nm2bdw x
 
 act2bdw :: Fresh m => Act -> m String
-act2bdw Tau = return "tau"
+act2bdw Tau      = return "tau"
 act2bdw (Up x y) = (\x y -> "(up "++x++" "++y++")") <$> tm2bdw x <*> tm2bdw y
 
 actb2bdw :: Fresh m => ActB -> m String
@@ -321,23 +322,23 @@ form2bdw (Dia a f) = (\a f -> "(diaAct "++a++" "++f++")") <$> act2bdw a <*> form
 form2bdw (Box a f) = (\a f -> "(boxAct "++a++" "++f++")") <$> act2bdw a <*> form2bdw f
 form2bdw (DiaB (UpB x) b) = do (w,f) <- unbind b
                                (\x w f->"(diaOut "++x++" "++w++"\\"++f++")")
-                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f
 form2bdw (DiaB (DnB x) b) = do (w,f) <- unbind b
                                (\x w f->"(diaInL "++x++" "++w++"\\"++f++")")
-                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f
 form2bdw (BoxB (UpB x) b) = do (w,f) <- unbind b
                                (\x w f->"(boxOut "++x++" "++w++"\\"++f++")")
-                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f
 form2bdw (BoxB (DnB x) b) = do (w,f) <- unbind b
                                (\x w f->"(boxIn "++x++" "++w++"\\"++f++")")
-                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f 
+                                 <$> tm2bdw x <*> nm2bdw w <*> form2bdw f
 form2bdw f@(DiaMatch [] _) = error (show f)
 form2bdw (DiaMatch cs f) =
-  foldr (\(x,y) f -> "(diaMatch "++x++" "++" "++y++" "++f++")")
+  foldr (\(x,y) f -> "(diaMatch "++x++" "++y++" "++f++")")
     <$> form2bdw f <*> sequence [(,)<$>tm2bdw x<*>tm2bdw y|(x,y)<-cs]
 form2bdw f@(BoxMatch [] _) = error (show f)
 form2bdw (BoxMatch cs f) =
-  foldr (\(x,y) f -> "(boxMatch "++x++" "++" "++y++" "++f++")")
+  foldr (\(x,y) f -> "(boxMatch "++x++" "++y++" "++f++")")
     <$> form2bdw f <*> sequence [(,)<$>tm2bdw x<*>tm2bdw y|(x,y)<-cs]
 
 {-
