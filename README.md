@@ -1,23 +1,6 @@
 # hs-picalc-unbound-example
 
-This directory contains literate Haskell program that is both a source code
-of a program and of a document.
-
-The document has been archived on https://arxiv.org/abs/1705.10908
- * Errata
-    * `fv(a_B)` instead of `fv(a)` for the bounded action for name-restricted processes in Figure 3.
-    * In Figures 4 and 5, it would be more consistent with the naming convention to write `In x b` rather than `In x p`.
-
-## to build the document
-To compile the document you need [lhs2TeX](http://hackage.haskell.org/package/lhs2tex),
-which preprocesses literate Haskell programs into LaTeX files.
-On debian or ubuntu linux, you can install this by
-```
-sudo apt-get install lhs2tex
-```
-Then you can run "make" to build the documnet.
-
-## to build the Haskell program
+## To build the project
 
 Install [`stack`](https://www.haskellstack.org/), which is a toolset for Haskell
 including a sandboxing build system. It can be installed
