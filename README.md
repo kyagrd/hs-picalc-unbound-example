@@ -8,6 +8,9 @@ The document has been archived on https://arxiv.org/abs/1705.10908
     * `fv(a_B)` instead of `fv(a)` for the bounded action for name-restricted processes in Figure 3.
     * In Figures 4 and 5, it would be more consistent with the naming convention to write `In x b` rather than `In x p`.
 
+This master branch is freezed for mainly the documentation purposes for the paper above.
+Further developments are to be continued on the [unlit](https://github.com/kyagrd/hs-picalc-unbound-example/tree/unlit) branch.
+
 ## to build the document
 To compile the document you need [lhs2TeX](http://hackage.haskell.org/package/lhs2tex),
 which preprocesses literate Haskell programs into LaTeX files.
