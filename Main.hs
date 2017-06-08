@@ -18,6 +18,7 @@ import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
 import           Unbound.LocallyNameless
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
 {-# ANN module "HLint: ignore Use mappend" #-}
 
@@ -263,21 +264,21 @@ dosomething3 = do
   return $ subs nctx s bp'
   where
     nctx = [All a]
-    p = Nu$x.\(out a x o)
+    p = Nu$x.\ out a x o
 
 dosomething4 = do
   (s,(l,p')) <- one nctx p
   return $ subs nctx s p'
   where
     nctx = [All a]
-    p = Nu$x.\(out a x o)
+    p = Nu$x.\ out a x o
 
 dosomething5 = do
   (s,(l,bp')) <- oneb nctx p
   return $ subs nctx s bp'
   where
     nctx = [All a]
-    p = Nu$x.\(out x a o)
+    p = Nu$x.\ out x a o
 
 
 nm2bdw :: Fresh m => Nm -> m String

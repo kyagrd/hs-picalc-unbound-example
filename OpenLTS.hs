@@ -17,6 +17,7 @@ import           Unbound.LocallyNameless hiding (GT, empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
 
 type EqC = [(Nm,Nm)]
+{-
 infixr 5 .:
 (.:) :: (Nm,Nm) -> EqC -> EqC
 (x,y) .: sigma = case compare x y of  LT -> [(x,y)] .++ sigma
@@ -24,6 +25,7 @@ infixr 5 .:
                                       GT -> [(y,x)] .++ sigma
 infixr 5 .++
 (.++) = union
+-}
 
 type Ctx = [Quan]
 data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show)
@@ -78,11 +80,6 @@ subs nctx sigma = foldr (.) id [subst x (Var y) | (x,y)<-sigma']
   where  sigma' = [(i2n i, i2n $ P.rep part i) | i<-[0..maxVal]]
          (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
          maxVal = length nctx - 1
-
-subs' :: Subst Tm b => Ctx' -> EqC -> b -> b
-subs' ctx@(nctx,maxVal,n2iMap) sigma = foldr (.) id [subst x (Var y) | (x,y)<-sigma']
-  where  sigma' = [(i2n i, i2n $ P.rep part i) | i<-[0..maxVal]]
-         (part, (n2i, i2n)) = mkPartitionFromEqC' ctx sigma
 
 subs_ :: Subst Tm b => Ctx' -> EqC' -> b -> b
 subs_ ctx@(nctx,maxVal,n2iMap) sigma = foldr (.) id [subst x (Var y) | (x,y)<-sigma']

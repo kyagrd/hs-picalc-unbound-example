@@ -9,7 +9,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.Tree
 import qualified IdSubLTS
-import           OpenLTS
+import           OpenLTS hiding (one, oneb)
 import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
@@ -32,45 +32,45 @@ sim2 ctx p q = and $ sim2_ ctx p q
 
 sim2_ :: Ctx' -> Pr -> Pr -> [Bool]
 sim2_ ctx@(nctx,_,_) p q  =
-                    do  (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
-                        let (lp, p') = sigmaSubs r
-                        return . (or :: [Bool] -> Bool) . runFreshMT $ do
-                          (lq, q') <-IdSubLTS.one (sigmaSubs q)
-                          guard $ lp == lq
-                          return . (and :: [Bool] -> Bool) $ sim2_ ctx p' q'
-               <|>  do  (sigma, r) <- runFreshMT (one_b ctx p); let sigmaSubs = subs_ ctx sigma
-                        let (lp, bp') = sigmaSubs r
-                        let x' = runFreshM $ freshFrom (fv nctx) bp'
-                        return . (or :: [Bool] -> Bool) . runFreshMT $ do
-                          (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
-                          guard $ lp == lq
-                          (x, q1, p1) <- unbind2' bq' bp'
-                          let (p', q')  | x == x'    = (p1, q1)
-                                        | otherwise  = subst x (Var x') (p1, q1)
-                          let ctx' = case lp of   DnB _ -> extend (All x') ctx
-                                                  UpB _ -> extend (Nab x') ctx
-                          return . (and :: [Bool] -> Bool) $ sim2_ ctx' p' q'
+       do  (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
+           let (lp, p') = sigmaSubs r
+           return . (or :: [Bool] -> Bool) . runFreshMT $ do
+             (lq, q') <-IdSubLTS.one (sigmaSubs q)
+             guard $ lp == lq
+             return . (and :: [Bool] -> Bool) $ sim2_ ctx p' q'
+   <|>  do  (sigma, r) <- runFreshMT (one_b ctx p); let sigmaSubs = subs_ ctx sigma
+            let (lp, bp') = sigmaSubs r
+            let x' = runFreshM $ freshFrom (fv nctx) bp'
+            return . (or :: [Bool] -> Bool) . runFreshMT $ do
+              (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
+              guard $ lp == lq
+              (x, q1, p1) <- unbind2' bq' bp'
+              let (p', q')  | x == x'    = (p1, q1)
+                            | otherwise  = subst x (Var x') (p1, q1)
+              let ctx' = case lp of   DnB _ -> extend (All x') ctx
+                                      UpB _ -> extend (Nab x') ctx
+              return . (and :: [Bool] -> Bool) $ sim2_ ctx' p' q'
 
 sim2' :: Ctx' -> Pr -> Pr -> [Tree (Either StepLog StepLog)]
 sim2' ctx@(nctx,_,_) p q   =
-                      do   (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
-                           let (lp, p') = sigmaSubs r
-                           returnL (One nctx (toEqC sigma) lp p') . runFreshMT $ do
-                             (lq, q') <-IdSubLTS.one (sigmaSubs q)
-                             guard $ lp == lq
-                             returnR (One nctx (toEqC sigma) lq q') $ sim2' ctx p' q'
-                <|>   do   (sigma, r) <- runFreshMT (one_b ctx p); let sigmaSubs = subs_ ctx sigma
-                           let (lp, bp') = sigmaSubs r
-                           let x' = runFreshM $ freshFrom (fv nctx) bp'
-                           returnL (OneB nctx (toEqC sigma) lp bp') . runFreshMT $ do
-                             (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
-                             guard $ lp == lq
-                             (x, p1, q1) <- unbind2' bp' bq'
-                             let (p', q')   | x == x'    = (p1, q1)
-                                            | otherwise  = subst x (Var x') (p1, q1)
-                             let ctx' = case lp of   DnB _ -> extend (All x') ctx
-                                                     UpB _ -> extend (Nab x') ctx
-                             returnR (OneB nctx (toEqC sigma) lq bq') $ sim2' ctx' p' q'
+        do   (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
+             let (lp, p') = sigmaSubs r
+             returnL (One nctx (toEqC sigma) lp p') . runFreshMT $ do
+               (lq, q') <-IdSubLTS.one (sigmaSubs q)
+               guard $ lp == lq
+               returnR (One nctx (toEqC sigma) lq q') $ sim2' ctx p' q'
+  <|>   do   (sigma, r) <- runFreshMT (one_b ctx p); let sigmaSubs = subs_ ctx sigma
+             let (lp, bp') = sigmaSubs r
+             let x' = runFreshM $ freshFrom (fv nctx) bp'
+             returnL (OneB nctx (toEqC sigma) lp bp') . runFreshMT $ do
+               (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
+               guard $ lp == lq
+               (x, p1, q1) <- unbind2' bp' bq'
+               let (p', q')   | x == x'    = (p1, q1)
+                              | otherwise  = subst x (Var x') (p1, q1)
+               let ctx' = case lp of   DnB _ -> extend (All x') ctx
+                                       UpB _ -> extend (Nab x') ctx
+               returnR (OneB nctx (toEqC sigma) lq bq') $ sim2' ctx' p' q'
   where toEqC = part2eqc ctx
 
 bisim2 ctx p q = and $ bisim2_ ctx p q
@@ -157,135 +157,6 @@ bisim2' ctx@(nctx,_,_) p q =
                              UpB _ -> extend (Nab x') ctx
        returnL (OneB nctx (toEqC sigma) lp bp') $ bisim2' ctx' p' q'
   where toEqC = part2eqc ctx
-
-
-{-
-sim nctx p q = and $ sim_ nctx p q
-
-sim_ :: Ctx -> Pr -> Pr -> [Bool]
-sim_ nctx p q  =    do  (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs = subs nctx sigma
-                        let (lp, p') = sigmaSubs r
-                        return . (or :: [Bool] -> Bool) . runFreshMT $ do
-                          (lq, q') <-IdSubLTS.one (sigmaSubs q)
-                          guard $ lp == lq
-                          return . (and :: [Bool] -> Bool) $ sim_ nctx p' q'
-               <|>  do  (sigma, r) <- runFreshMT (oneb nctx p); let sigmaSubs = subs nctx sigma
-                        let (lp, bp') = sigmaSubs r
-                        let x' = runFreshM $ freshFrom (fv nctx) bp'
-                        return . (or :: [Bool] -> Bool) . runFreshMT $ do
-                          (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
-                          guard $ lp == lq
-                          (x, q1, p1) <- unbind2' bq' bp'
-                          let (p', q')  | x == x'    = (p1, q1)
-                                        | otherwise  = subst x (Var x') (p1, q1)
-                          let nctx' = case lp of   DnB _ -> All x' : nctx
-                                                   UpB _ -> Nab x' : nctx
-                          return . (and :: [Bool] -> Bool) $ sim_ nctx' p' q'
-
-sim' :: Ctx -> Pr -> Pr -> [Tree (Either StepLog StepLog)]
-sim' nctx p q   =     do   (sigma, r) <- runFreshMT (one nctx p); let sigmaSubs = subs nctx sigma
-                           let (lp, p') = sigmaSubs r
-                           returnL (One nctx sigma lp p') . runFreshMT $ do
-                             (lq, q') <-IdSubLTS.one (sigmaSubs q)
-                             guard $ lp == lq
-                             returnR (One nctx sigma lq q') $ sim' nctx p' q'
-                <|>   do   (sigma, r) <- runFreshMT (oneb nctx p); let sigmaSubs = subs nctx sigma
-                           let (lp, bp') = sigmaSubs r
-                           let x' = runFreshM $ freshFrom (fv nctx) bp'
-                           returnL (OneB nctx sigma lp bp') . runFreshMT $ do
-                             (lq, bq') <-IdSubLTS.oneb (sigmaSubs q)
-                             guard $ lp == lq
-                             (x, p1, q1) <- unbind2' bp' bq'
-                             let (p', q')   | x == x'    = (p1, q1)
-                                            | otherwise  = subst x (Var x') (p1, q1)
-                             let nctx' = case lp of   DnB _ -> All x' : nctx
-                                                      UpB _ -> Nab x' : nctx
-                             returnR (OneB nctx sigma lq bq') $ sim' nctx' p' q'
-
-bisim nctx p q = and $ bisim_ nctx p q
-bisim_ nctx p q =
-  do (sigma, r) <- runFreshMT (one nctx p)
-     let (lp, p') = subs nctx sigma r
-     return . (or :: [Bool] -> Bool) . runFreshMT $ do
-       (lq, q') <-IdSubLTS.one (subs nctx sigma q) -- follow with same sub and label
-       guard $ lp == lq
-       return . (and :: [Bool] -> Bool) $ bisim_ nctx p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (oneb nctx p)
-     let (lp, bp') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (fv nctx) bp' -- to use same new quan var
-     return . (or :: [Bool] -> Bool) . runFreshMT $ do
-       (lq, bq') <-IdSubLTS.oneb (subs nctx sigma q) -- follow with same sub and label
-       guard $ lp == lq
-       (x, p1, q1) <- unbind2' bp' bq'
-       let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
-       let nctx' = case lp of DnB _ -> All x' : nctx
-                              UpB _ -> Nab x' : nctx
-       return . (and :: [Bool] -> Bool) $ bisim_ nctx' p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (one nctx q)
-     let (lq, q') = subs nctx sigma r
-     return . (or :: [Bool] -> Bool) . runFreshMT $ do
-       (lp, p') <-IdSubLTS.one (subs nctx sigma p) -- follow with same sub and label
-       guard $ lp == lq
-       return . (and :: [Bool] -> Bool) $ bisim_ nctx p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (oneb nctx q)
-     let (lq, bq') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (fv nctx) bq' -- to use same new quan var
-     return . (or :: [Bool] -> Bool) . runFreshMT $ do
-       (lp, bp') <-IdSubLTS.oneb (subs nctx sigma p) -- follow with same sub and label
-       guard $ lp == lq
-       (x, q1, p1) <- unbind2' bq' bp'
-       let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
-       let nctx' = case lp of DnB _ -> All x' : nctx
-                              UpB _ -> Nab x' : nctx
-       return . (and :: [Bool] -> Bool) $ bisim_ nctx' p' q'
-
-
-bisim' nctx p q =
-  do (sigma, r) <- runFreshMT (one nctx p)
-     let (lp, p') = subs nctx sigma r
-     returnL (One nctx sigma lp p') . runFreshMT $ do
-       (lq, q') <-IdSubLTS.one (subs nctx sigma q) -- follow with same sub and label
-       guard $ lp == lq
-       returnR (One nctx sigma lq q') $ bisim' nctx p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (oneb nctx p)
-     let (lp, bp') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (fv nctx) bp' -- to use same new quan var
-     returnL (OneB nctx sigma lp bp') . runFreshMT $ do
-       (lq, bq') <-IdSubLTS.oneb (subs nctx sigma q) -- follow with same sub and label
-       guard $ lp == lq
-       (x, p1, q1) <- unbind2' bp' bq'
-       let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
-       let nctx' = case lp of DnB _ -> All x' : nctx
-                              UpB _ -> Nab x' : nctx
-       returnR (OneB nctx sigma lq bq') $ bisim' nctx' p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (one nctx q)
-     let (lq, q') = subs nctx sigma r
-     returnR (One nctx sigma lq q') . runFreshMT $ do
-       (lp, p') <-IdSubLTS.one (subs nctx sigma p) -- follow with same sub and label
-       guard $ lp == lq
-       returnL (One nctx sigma lp p') $ bisim' nctx p' q'
-  <|>
-  do (sigma, r) <- runFreshMT (oneb nctx q)
-     let (lq, bq') = subs nctx sigma r
-     let x' = runFreshM $ freshFrom (fv nctx) bq' -- to use same new quan var
-     returnR (OneB nctx sigma lq bq') . runFreshMT $ do
-       (lp, bp') <-IdSubLTS.oneb (subs nctx sigma p) -- follow with same sub and label
-       guard $ lp == lq
-       (x, q1, p1) <- unbind2' bq' bp'
-       let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
-       let nctx' = case lp of DnB _ -> All x' : nctx
-                              UpB _ -> Nab x' : nctx
-       returnL (OneB nctx sigma lp bp') $ bisim' nctx' p' q'
--}
 
 freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
 freshFrom xs b = do { mapM_ fresh xs; (y,_) <- unbind b; return y }
