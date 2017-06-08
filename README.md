@@ -101,7 +101,6 @@ The distinguishing formulae above can be converted into Bedwyr syntax definition
 to check whether each process satisfies each formula as follows:
 ```
 *Main> let f1 = fst . head . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
-*Main> 
 *Main> let f2 = snd . head . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
 *Main> let bp1 = bind (quan2nm<$>axay :: [Nm]) (taup tau .+ tau)
 *Main> let bf1 = bind (quan2nm<$>axay :: [Nm]) f1
