@@ -13,6 +13,7 @@ import qualified IdSubLTS                       as IdS
 import           OpenBisim
 import           OpenLTS
 import           PiCalc
+import           Data.Maybe
 import           SubstLatt                      (someFunc)
 import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
@@ -21,6 +22,18 @@ import           Unbound.LocallyNameless
 {-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
 {-# ANN module "HLint: ignore Use mappend" #-}
+
+-- rotate right for associative operators
+rotateRight :: Rep a => a -> a
+rotateRight a = case cast a of
+        Just(Plus (Plus x y) z) -> fromJust(cast(Plus x (Plus y z)))
+        Just(Par (Par x y) z) -> fromJust(cast(Par x (Par y z)))
+        _ -> a
+
+{-
+foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
+everwhyere rotateRight $ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
+-}
 
 appPrec :: Rational
 appPrec = 10
