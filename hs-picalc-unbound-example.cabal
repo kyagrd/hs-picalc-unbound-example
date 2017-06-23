@@ -36,6 +36,7 @@ executable hs-picalc-unbound-example-exe
                      , fgl
                      , graphviz
                      , data-partition
+                     , data-ordlist
                      , transformers
                      , unbound
                      , pretty
