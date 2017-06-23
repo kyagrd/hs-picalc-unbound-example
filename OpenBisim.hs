@@ -73,7 +73,8 @@ sim2' ctx@(nctx,_,_) p q   =
                returnR (OneB nctx (toEqC sigma) lq bq') $ sim2' ctx' p' q'
   where toEqC = part2eqc ctx
 
-bisim2 ctx p q = and $ bisim2_ ctx p q
+bisim2 ctx p q = and $ bisim2_ ctx (red p) (red q)
+bisim2_ _ p q | p == q = [True] -- shortcut for syntactic equality
 bisim2_ ctx@(nctx,_,_) p q =
   do (sigma, r) <- runFreshMT (one_ ctx p)
      let (lp, p') = subs_ ctx sigma r
