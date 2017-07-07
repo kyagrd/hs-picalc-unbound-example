@@ -7,4 +7,4 @@ import qualified Data.MemoUgly
 memo f = Data.MemoUgly.memo f
 memoIO f = Data.MemoUgly.memoIO f
 
-memoFix ff = memo (ff f)
+memoFix ff = f where f = memo (ff f)
