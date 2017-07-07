@@ -12,7 +12,10 @@ import qualified IdSubLTS
 import           OpenLTS hiding (one, oneb)
 import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
+import MemoUgly
 {-# ANN module "HLint: ignore Use mappend" #-}
+
+
 
 data StepLog  =  One   Ctx EqC Act   Pr
               |  OneB  Ctx EqC ActB  PrB  deriving (Eq,Ord,Show)
@@ -73,15 +76,18 @@ sim2' ctx@(nctx,_,_) p q   =
                returnR (OneB nctx (toEqC sigma) lq bq') $ sim2' ctx' p' q'
   where toEqC = part2eqc ctx
 
+
 bisim2 ctx p q = and $ bisim2_ ctx p q -- (simplify p) (simplify q)
--- bisim2_ _ p q | p == q = [True] -- shortcut for syntactic equality
-bisim2_ ctx@(nctx,_,_) p q =
+
+bisim2_ ctx p q = memoFix bisim2_unfix (ctx,p,q)
+-- bisim2_ _ _ p q | p==q = return True -- shortcut for syntactic equality
+bisim2_unfix f (ctx@(nctx,_,_),p,q) =
   do (sigma, r) <- runFreshMT (one_ ctx p)
      let (lp, p') = subs_ ctx sigma r
      return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lq, q') <-IdSubLTS.one (subs_ ctx sigma q) -- follow with same sub and label
        guard $ lp == lq
-       return . (and :: [Bool] -> Bool) $ bisim2_ ctx p' q'
+       return . (and :: [Bool] -> Bool) $ f(ctx,p',q')
   <|>
   do (sigma, r) <- runFreshMT (one_b ctx p)
      let (lp, bp') = subs_ ctx sigma r
@@ -94,14 +100,14 @@ bisim2_ ctx@(nctx,_,_) p q =
                     | otherwise = subst x (Var x') (p1, q1)
        let nctx' = case lp of DnB _ -> extend (All x') ctx
                               UpB _ -> extend (Nab x') ctx
-       return . (and :: [Bool] -> Bool) $ bisim2_ nctx' p' q'
+       return . (and :: [Bool] -> Bool) $ f(nctx',p',q')
   <|>
   do (sigma, r) <- runFreshMT (one_ ctx q)
      let (lq, q') = subs_ ctx sigma r
      return . (or :: [Bool] -> Bool) . runFreshMT $ do
        (lp, p') <-IdSubLTS.one (subs_ ctx sigma p) -- follow with same sub and label
        guard $ lp == lq
-       return . (and :: [Bool] -> Bool) $ bisim2_ ctx p' q'
+       return . (and :: [Bool] -> Bool) $ f(ctx,p',q')
   <|>
   do (sigma, r) <- runFreshMT (one_b ctx q)
      let (lq, bq') = subs_ ctx sigma r
@@ -114,8 +120,7 @@ bisim2_ ctx@(nctx,_,_) p q =
                     | otherwise = subst x (Var x') (p1, q1)
        let ctx' = case lp of DnB _ -> extend (All x') ctx
                              UpB _ -> extend (Nab x') ctx
-       return . (and :: [Bool] -> Bool) $ bisim2_ ctx' p' q'
-
+       return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
 
 bisim2' ctx@(nctx,_,_) p q =
   do (sigma, r) <- runFreshMT (one_ ctx p)
