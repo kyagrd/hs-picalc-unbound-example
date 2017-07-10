@@ -34,13 +34,14 @@ bisim' nctx = bisim2' (toCtx' nctx)
 sim2 ctx p q = and $ sim2_ ctx p q
 
 sim2_ :: Ctx' -> Pr -> Pr -> [Bool]
-sim2_ ctx@(nctx,_,_) p q  =
+sim2_ ctx p q = memoFix sim2_unfix (ctx,p,q) 
+sim2_unfix f (ctx@(nctx,_,_), p, q)  = 
        do  (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
              (lq, q') <-IdSubLTS.one (sigmaSubs q)
              guard $ lp == lq
-             return . (and :: [Bool] -> Bool) $ sim2_ ctx p' q'
+             return . (and :: [Bool] -> Bool) $ f(ctx,p',q')
    <|>  do  (sigma, r) <- runFreshMT (one_b ctx p); let sigmaSubs = subs_ ctx sigma
             let (lp, bp') = sigmaSubs r
             let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -52,7 +53,7 @@ sim2_ ctx@(nctx,_,_) p q  =
                             | otherwise  = subst x (Var x') (p1, q1)
               let ctx' = case lp of   DnB _ -> extend (All x') ctx
                                       UpB _ -> extend (Nab x') ctx
-              return . (and :: [Bool] -> Bool) $ sim2_ ctx' p' q'
+              return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
 
 sim2' :: Ctx' -> Pr -> Pr -> [Tree (Either StepLog StepLog)]
 sim2' ctx@(nctx,_,_) p q   =
@@ -80,7 +81,6 @@ sim2' ctx@(nctx,_,_) p q   =
 bisim2 ctx p q = and $ bisim2_ ctx p q -- (simplify p) (simplify q)
 
 bisim2_ ctx p q = memoFix bisim2_unfix (ctx,p,q)
--- bisim2_ _ _ p q | p==q = return True -- shortcut for syntactic equality
 bisim2_unfix f (ctx@(nctx,_,_),p,q) =
   do (sigma, r) <- runFreshMT (one_ ctx p)
      let (lp, p') = subs_ ctx sigma r

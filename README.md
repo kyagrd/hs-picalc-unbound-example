@@ -142,3 +142,219 @@ No solution.
 As expected, each distinguishing formula satisfies one of the processes but not the other.
 The Bedwyr implementation of the OM formula checker is availiable at
 https://github.com/kyagrd/NonBisim2DF/tree/master/pic
+
+
+## Benchmark comparing with Bedwyr specifciation
+
+```
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=100 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(0.02 secs, 6,648,424 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=250 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(0.07 secs, 34,298,168 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=500 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(0.18 secs, 129,581,456 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=750 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(0.28 secs, 302,031,952 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=1000 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(0.42 secs, 565,963,352 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=2500 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(1.95 secs, 3,404,646,784 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=5000 in bisim [] (foldr1 Plus (replicate n tau)) (foldl1 Plus (replicate n tau))
+True
+it :: Bool
+(7.29 secs, 13,606,563,728 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> 
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> 
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=100 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(0.03 secs, 6,652,160 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=250 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(0.07 secs, 34,302,584 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=500 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(0.18 secs, 129,586,560 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=750 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(0.29 secs, 293,840,584 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=1000 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(0.41 secs, 539,324,432 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=2500 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(1.95 secs, 3,416,344,384 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=5000 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
+True
+it :: Bool
+(7.35 secs, 13,609,904,424 bytes)
+```
+
+```
+kyagrd@kyagrd:~/github/kyagrd/NonBisim2DF/pic$ rlwrap ./bedwyr a.def
+[Warning] Now including "a.def".
+[Warning] Now including "pi.def".
+Bedwyr 1.4-beta13 (revision 1080) welcomes you.
+
+For a little help, type "#help."
+
+?= #time.
+?= N = 100 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 929ms
+Found a solution:
+ N = 100
+More [y] ? 
++ 2ms
+No more solutions (found 1).
+?= N = 250 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 8123ms
+Found a solution:
+ N = 250
+More [y] ? 
++ 16ms
+No more solutions (found 1).
+?= N = 100 /\ exists P Q, getL N P /\ getR N Q /\ bisim P Q.
++ 889ms
+Found a solution:
+ N = 100
+More [y] ? 
++ 2ms
+No more solutions (found 1).
+?= N = 250 /\ exists P Q, getL N P /\ getR N Q /\ bisim P Q.
++ 8352ms
+Found a solution:
+ N = 250
+More [y] ? 
++ 25ms
+No more solutions (found 1).
+```
+From 500, bedwyr takes too much memory.
+
+
+```
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=6 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(0.19 secs, 85,158,592 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=7 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(0.58 secs, 401,238,832 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=8 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(2.23 secs, 1,935,709,936 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=9 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(9.78 secs, 9,526,100,024 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=10 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(46.39 secs, 47,643,823,728 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=5 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(0.07 secs, 18,662,216 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=6 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(0.20 secs, 85,152,328 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=7 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(0.58 secs, 401,240,728 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=8 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(2.21 secs, 1,935,709,936 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=9 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(9.68 secs, 9,526,100,656 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=10 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(46.85 secs, 47,643,826,104 bytes)
+
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=11 in bisim [] (foldr1 Par (replicate n tau)) (foldl1 Par (replicate n tau))
+True
+it :: Bool
+(232.05 secs, 241,255,012,128 bytes)
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=11 in bisim [] (foldl1 Par (replicate n tau)) (foldr1 Par (replicate n tau))
+True
+it :: Bool
+(231.54 secs, 241,255,012,440 bytes)
+```
+
+```
+kyagrd@kyagrd:~/github/kyagrd/NonBisim2DF/pic$ rlwrap ./bedwyr b.def
+[Warning] Now including "b.def".
+[Warning] Now including "pi.def".
+Bedwyr 1.4-beta13 (revision 1080) welcomes you.
+
+For a little help, type "#help."
+
+?= #time.
+?= N = 5 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 399ms
+Found a solution:
+ N = 5
+More [y] ? 
++ 1ms
+No more solutions (found 1).
+?= N = 6 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 1277ms
+Found a solution:
+ N = 6
+More [y] ? 
++ 1ms
+No more solutions (found 1).
+?= N = 7 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 4293ms
+Found a solution:
+ N = 7
+More [y] ? 
++ 7ms
+No more solutions (found 1).
+?= N = 8 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 14714ms
+Found a solution:
+ N = 8
+More [y] ? 
++ 23ms
+No more solutions (found 1).
+?= N = 9 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 49396ms
+Found a solution:
+ N = 9
+More [y] ? 
++ 75ms
+No more solutions (found 1).
+?= N = 10 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
++ 161222ms
+Found a solution:
+ N = 10
+More [y] ? 
++ 224ms
+No more solutions (found 1).
+?= N = 11 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
+[Error] At line 1, bytes 1-55: User interruption.
+```
