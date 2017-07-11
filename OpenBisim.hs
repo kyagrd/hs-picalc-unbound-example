@@ -9,10 +9,10 @@ import           Control.Applicative
 import           Control.Monad
 import           Data.Tree
 import qualified IdSubLTS
-import           OpenLTS hiding (one, oneb)
+import           MemoUgly
+import           OpenLTS                 hiding (one, oneb)
 import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
-import MemoUgly
 {-# ANN module "HLint: ignore Use mappend" #-}
 
 
@@ -34,8 +34,8 @@ bisim' nctx = bisim2' (toCtx' nctx)
 sim2 ctx p q = and $ sim2_ ctx p q
 
 sim2_ :: Ctx' -> Pr -> Pr -> [Bool]
-sim2_ ctx p q = memoFix sim2_unfix (ctx,p,q) 
-sim2_unfix f (ctx@(nctx,_,_), p, q)  = 
+sim2_ ctx p q = memoFix sim2_unfix (ctx,p,q)
+sim2_unfix f (ctx@(nctx,_,_), p, q)  =
        do  (sigma, r) <- runFreshMT (one_ ctx p); let sigmaSubs = subs_ ctx sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
@@ -98,9 +98,9 @@ bisim2_unfix f (ctx@(nctx,_,_),p,q) =
        (x, p1, q1) <- unbind2' bp' bq'
        let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
                     | otherwise = subst x (Var x') (p1, q1)
-       let nctx' = case lp of DnB _ -> extend (All x') ctx
-                              UpB _ -> extend (Nab x') ctx
-       return . (and :: [Bool] -> Bool) $ f(nctx',p',q')
+       let ctx' = case lp of DnB _ -> extend (All x') ctx
+                             UpB _ -> extend (Nab x') ctx
+       return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
   <|>
   do (sigma, r) <- runFreshMT (one_ ctx q)
      let (lq, q') = subs_ ctx sigma r
@@ -165,7 +165,7 @@ bisim2' ctx@(nctx,_,_) p q =
   where toEqC = part2eqc ctx
 
 freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
-freshFrom xs b = do { mapM_ fresh xs; (y,_) <- unbind b; return y }
+freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
 
 forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)]
 forest2df rs
