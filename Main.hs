@@ -71,6 +71,7 @@ instance Pretty Pr where
   pPrintPrec l r (Match x y p) = maybeParens (r > appPrec) $
             text "Match" <+> ppp x <+> ppp y <+> ppp p
     where ppp = pPrintPrec l (appPrec+1)
+{-
 instance Pretty Form where
   pPrintPrec _ _ FF = text "FF"
   pPrintPrec _ _ TT = text "TT"
@@ -98,6 +99,7 @@ instance Pretty Form where
   pPrintPrec l r (DiaMatch sigma f) = maybeParens (r > appPrec) $
             text "DiaMatch" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
+-}
 instance Pretty StepLog where
   pPrintPrec l r (One  nctx sigma a p) = maybeParens (r > appPrec) $
             text "One" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp p
@@ -176,32 +178,32 @@ main = do
   putStrLn "================================================================"
   print $ bisim axay (tau .+ taup tau) (TauP $ (x.= y)tau)
   putStrLn . showForest $ bisim' axay (tau .+ taup tau) (TauP $ (x.= y) tau)
-  mapM_ print . forest2df $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
+--  mapM_ print . forest2df $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
   putStrLn "================================================================"
   print $ bisim axay (taup $ (x.= y) tau) (tau .+ taup tau)
   putStrLn . showForest $ bisim' axay (taup $ (x.= y) tau) (tau .+ taup tau)
-  mapM_ pp . forest2df $ bisim' axay (taup $ (x.= y)tau) (tau .+ taup tau)
+--  mapM_ pp . forest2df $ bisim' axay (taup $ (x.= y)tau) (tau .+ taup tau)
   putStrLn "================================================================"
   print $ bisim axay (taup ((x.= y) tau) .+ t_tt) t_tt
   putStrLn . showForest $ bisim' axay (taup ((x.= y) tau) .+ t_tt) t_tt
-  mapM_ pp . forest2df $ bisim' axay (taup ((x.= y) tau) .+ t_tt) t_tt
+--  mapM_ pp . forest2df $ bisim' axay (taup ((x.= y) tau) .+ t_tt) t_tt
   putStrLn "================================================================"
   putStrLn . showForest $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
-  mapM_ pp . forest2df $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
+--  mapM_ pp . forest2df $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
   putStrLn "================================================================"
   putStrLn . showForest $ bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
-  mapM_ pp . forest2df $ bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
+--  mapM_ pp . forest2df $ bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
   putStrLn "================================================================"
   putStrLn . showForest $ bisim' axayazaw ((z.= w) tau) ((x.= y) tau)
-  mapM_ pp . forest2df $ bisim' axayazaw ((z.= w) tau) ((x.= y) tau)
+--  mapM_ pp . forest2df $ bisim' axayazaw ((z.= w) tau) ((x.= y) tau)
   putStrLn "================================================================"
   print $ bisim axayaaab ppp1 qqq1
   putStrLn . showForest $ bisim' axayaaab ppp1 qqq1
-  mapM_ pp . forest2df $ bisim' axayaaab ppp1 qqq1
+--  mapM_ pp . forest2df $ bisim' axayaaab ppp1 qqq1
   putStrLn "================================================================"
   print $ bisim [All a] ppp2 qqq2
   putStrLn . showForest $ bisim' [All a] ppp2 qqq2
-  mapM_ pp . forest2df $ bisim' [All a] ppp2 qqq2
+--  mapM_ pp . forest2df $ bisim' [All a] ppp2 qqq2
   putStrLn "================================================================"
   pp (runFreshMT dosomething2 :: [PrB])
   pp (runFreshMT dosomething3 :: [PrB])
@@ -210,15 +212,15 @@ main = do
   putStrLn "================================================================"
   print $ bisim axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
   putStrLn . showForest $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
-  mapM_ pp . forest2df $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
+--  mapM_ pp . forest2df $ bisim' axay ((x.= y) (taup tau) .+ tau) (taup tau .+ tau)
   putStrLn "================================================================"
   print $ bisim axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
   putStrLn . showForest $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
-  mapM_ pp . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
+--  mapM_ pp . forest2df $ bisim' axay (taup tau .+ tau) ((x.= y) (taup tau) .+ tau)
   putStrLn "================================================================"
   print $ bisim [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
   putStrLn . showForest $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
-  mapM_ pp . forest2df $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
+--  mapM_ pp . forest2df $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
 
 showForest = drawForest . map toTreeString
 showTree = drawTree . toTreeString
@@ -309,7 +311,7 @@ pr2bdw (Plus p q) = (\p q->"(plus "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
 pr2bdw (Par p q) = (\p q->"(par "++p++" "++q++")") <$> pr2bdw p <*> pr2bdw q
 pr2bdw (Nu b) = do (w,p) <- unbind b
                    (\w p->"(nu "++w++"\\"++p++")") <$> nm2bdw w <*> pr2bdw p
-
+{-
 form2bdw :: Fresh m => Form -> m String
 form2bdw FF = return "ff"
 form2bdw TT = return "tt"
@@ -341,6 +343,7 @@ form2bdw f@(BoxMatch [] _) = error (show f)
 form2bdw (BoxMatch cs f) =
   foldr (\(x,y) f -> "(boxMatch "++x++" "++y++" "++f++")")
     <$> form2bdw f <*> sequence [(,)<$>tm2bdw x<*>tm2bdw y|(x,y)<-cs]
+-}
 
 {-
 *Main Lib> :t runFreshMT (one p1)

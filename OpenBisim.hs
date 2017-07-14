@@ -166,7 +166,7 @@ bisim2' ctx@(nctx,_,_) p q =
 
 freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
 freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
-
+{-
 forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)]
 forest2df rs
             =    do  Node (Left (One _ sigma_p a _)) [] <- rs
@@ -238,3 +238,4 @@ subsMatchingActB :: ActB -> [StepLog] -> [EqC]
 subsMatchingActB a logs =
   do  OneB nctx sigma a' _ <-logs         ;  let sigmaSubs = subs nctx sigma
       guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
+-}
