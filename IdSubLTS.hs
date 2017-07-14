@@ -35,7 +35,7 @@ one (Par p q)
            return (Tau, Par (subst y v p') q')  -- interaction
 one (Nu b)  = do  (x,p) <- unbind b
                   (l,p') <- one p
-                  case l of  Up (Var x') (Var y)  | x == x'  -> empty
+                  case l of  Up (V x') (V y)  | x == x'  -> empty
                                                   | x == y   -> empty
                              _                    -> return (l, Nu (x.\p'))
 one _       = empty
@@ -48,12 +48,12 @@ oneb (Par p q)   =     do  (l,(x,p')) <- oneb' p;  return (l, x.\Par p' q)
                  <|>   do  (l,(x,q')) <- oneb' q;  return (l, x.\Par p q')
 oneb (Nu b)      =     do  (x,p) <- unbind b
                            (l,(y,p')) <- oneb' p
-                           case l of  UpB (Var x')   | x == x' -> empty
-                                      DnB (Var x')   | x == x' -> empty
+                           case l of  UpB (V x')   | x == x' -> empty
+                                      DnB (V x')   | x == x' -> empty
                                       _              -> return (l, y.\Nu (x.\p'))
                  <|>   do  (x,p) <- unbind b
-                           (Up y (Var x'),p') <- one p
-                           guard $ x == x' && Var x /= y
+                           (Up y (V x'),p') <- one p
+                           guard $ x == x' && V x /= y
                            return (UpB y, x.\p')  -- open
 oneb _           = empty
 

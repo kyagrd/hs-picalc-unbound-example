@@ -77,13 +77,13 @@ respects_ sigma ctx@(nctx,_,n2iMap) =
   where (n2i,i2n) = mkMapFunsFromEqC' ctx sigma
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
-subs nctx sigma = substs [(x,Var y) | (x,y)<-sigma']
+subs nctx sigma = substs [(x,V y) | (x,y)<-sigma']
   where  sigma' = [(i2n i, i2n $ P.rep part i) | i<-[0..maxVal]]
          (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
          maxVal = length nctx - 1
 
 subs_ :: Subst Tm b => Ctx' -> EqC' -> b -> b
-subs_ ctx@(nctx,maxVal,n2iMap) sigma = substs [(x,Var y) | (x,y)<-sigma']
+subs_ ctx@(nctx,maxVal,n2iMap) sigma = substs [(x,V y) | (x,y)<-sigma']
   where  sigma' = [(i2n i, i2n $ P.rep sigma i) | i<-[0..maxVal]]
          (n2i, i2n) = mkMapFunsFromEqC' ctx sigma
 
@@ -123,7 +123,7 @@ part2eqc ctx@(nctx,maxVal,n2iMap) sigma =
 one_ :: (Fresh m, Alternative m) => Ctx' -> Pr -> m (EqC',(Act,Pr))
 one_ ctx  (Out x y p)   = return (P.empty, (Up x y, p))
 one_ ctx  (TauP p)      = return (P.empty, (Tau, p))
-one_ ctx  (Match (Var x) (Var y) p)  | x == y                   = one_ ctx p
+one_ ctx  (Match (V x) (V y) p)  | x == y                   = one_ ctx p
                                      | [(x,y)] `respects'` ctx  =
                                            do  (sigma, r) <- one_ ctx p
                                                let sigma' = joinNm ctx (x,y) sigma
@@ -135,35 +135,35 @@ one_ ctx  (Par p q)
   <|>  do  (sigma,(l,q')) <- one_ ctx q;  return (sigma,(l,Par p q'))
   <|>  do  (sigma_p,(lp,bp)) <- one_b ctx p;  (sigma_q,(lq,bq)) <- one_b ctx q
            case (lp, lq) of             -- close
-             (DnB(Var x),UpB(Var x'))  -> do  (y, q', p') <-  unbind2' bq bp
-                                              let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
-                                              guard $ sigma' `respects_` ctx
-                                              return (sigma', (Tau, Nu(y.\Par p' q')))
-             (UpB(Var x'),DnB(Var x))  -> do  (y, p', q') <- unbind2' bp bq
-                                              let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
-                                              guard $ sigma' `respects_` ctx
-                                              return (sigma', (Tau, Nu(y.\Par p' q')))
-             _                         -> empty
-  <|>  do  (sigma_p, (Up (Var x) v, p')) <- one_ ctx p
-           (sigma_q, (DnB (Var x'), bq)) <- one_b ctx q;  (y, q') <- unbind bq
+             (DnB(V x),UpB(V x'))  -> do  (y, q', p') <-  unbind2' bq bp
+                                          let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
+                                          guard $ sigma' `respects_` ctx
+                                          return (sigma', (Tau, Nu(y.\Par p' q')))
+             (UpB(V x'),DnB(V x))  -> do  (y, p', q') <- unbind2' bp bq
+                                          let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
+                                          guard $ sigma' `respects_` ctx
+                                          return (sigma', (Tau, Nu(y.\Par p' q')))
+             _                     -> empty
+  <|>  do  (sigma_p, (Up (V x) v, p')) <- one_ ctx p
+           (sigma_q, (DnB (V x'), bq)) <- one_b ctx q;  (y, q') <- unbind bq
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
            guard $ sigma' `respects_` ctx
            return (sigma', (Tau, Par p' (subst y v q'))) -- interaction
-  <|>  do  (sigma_p, (DnB (Var x'), (y, p')))   <- one_b'  ctx p
-           (sigma_q, (Up (Var x) v,     q'))    <- one_    ctx q
+  <|>  do  (sigma_p, (DnB (V x'), (y, p')))   <- one_b'  ctx p
+           (sigma_q, (Up (V x) v,     q'))    <- one_    ctx q
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
            guard $ sigma' `respects_` ctx
            return (sigma', (Tau, Par (subst y v p') q'))
 one_ ctx (Nu b) = do  (x,p) <- unbind b;              let ctx' = extend (Nab x) ctx
                       (sigma,(l,p')) <- one_ ctx' p;  let sigmaSubs = subs_ ctx' sigma
-                      case l of  Up (Var x') (Var y)  | x == sigmaSubs x'  -> empty
+                      case l of  Up (V x') (V y)  | x == sigmaSubs x'  -> empty
                                                       | x == sigmaSubs y   -> empty
                                  _                    -> return (sigma, (l, Nu(x.\p')))
 one_ _    _      = empty
 
 one_b :: (Fresh m, Alternative m) => Ctx' -> Pr -> m (EqC',(ActB, PrB))
 one_b ctx (In x p) = return (P.empty, (DnB x, p))
-one_b ctx (Match (Var x) (Var y) p)  | x == y                   = one_b ctx p
+one_b ctx (Match (V x) (V y) p)  | x == y                   = one_b ctx p
                                      | [(x,y)] `respects'` ctx  =
                                            do  (sigma, r) <- one_b ctx p
                                                let sigma' = joinNm ctx (x,y) sigma
@@ -175,12 +175,12 @@ one_b ctx (Par p q) =
   <|>  do (sigma,(l,(x,q'))) <- one_b' ctx q;  return (sigma,(l, x.\Par p q'))
 one_b ctx (Nu b)  =    do  (x,p) <- unbind b;                    let ctx' = extend (Nab x) ctx
                            (sigma,(l,(y,p'))) <- one_b' ctx' p;  let sigmaSubs = subs_ ctx' sigma
-                           case l of  UpB (Var x')  | x == sigmaSubs x' -> empty
-                                      DnB (Var x')  | x == sigmaSubs x' -> empty
+                           case l of  UpB (V x')  | x == sigmaSubs x' -> empty
+                                      DnB (V x')  | x == sigmaSubs x' -> empty
                                       _             -> return (sigma, (l, y.\Nu (x.\p')))
                   <|>  do  (x,p) <- unbind b;                          let ctx' = extend (Nab x) ctx
-                           (sigma,(Up y (Var x'),p')) <- one_ ctx' p;  let sigmaSubs = subs_ ctx' sigma
-                           guard $ x == sigmaSubs x' && Var x /= sigmaSubs y
+                           (sigma,(Up y (V x'),p')) <- one_ ctx' p;  let sigmaSubs = subs_ ctx' sigma
+                           guard $ x == sigmaSubs x' && V x /= sigmaSubs y
                            return (sigma, (UpB y, x.\p')) -- open
 one_b _    _ = empty
 

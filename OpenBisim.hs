@@ -50,7 +50,7 @@ sim2_unfix f (ctx@(nctx,_,_), p, q)  =
               guard $ lp == lq
               (x, q1, p1) <- unbind2' bq' bp'
               let (p', q')  | x == x'    = (p1, q1)
-                            | otherwise  = subst x (Var x') (p1, q1)
+                            | otherwise  = subst x (V x') (p1, q1)
               let ctx' = case lp of   DnB _ -> extend (All x') ctx
                                       UpB _ -> extend (Nab x') ctx
               return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
@@ -71,7 +71,7 @@ sim2' ctx@(nctx,_,_) p q   =
                guard $ lp == lq
                (x, p1, q1) <- unbind2' bp' bq'
                let (p', q')   | x == x'    = (p1, q1)
-                              | otherwise  = subst x (Var x') (p1, q1)
+                              | otherwise  = subst x (V x') (p1, q1)
                let ctx' = case lp of   DnB _ -> extend (All x') ctx
                                        UpB _ -> extend (Nab x') ctx
                returnR (OneB nctx (toEqC sigma) lq bq') $ sim2' ctx' p' q'
@@ -97,7 +97,7 @@ bisim2_unfix f (ctx@(nctx,_,_),p,q) =
        guard $ lp == lq
        (x, p1, q1) <- unbind2' bp' bq'
        let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
+                    | otherwise = subst x (V x') (p1, q1)
        let ctx' = case lp of DnB _ -> extend (All x') ctx
                              UpB _ -> extend (Nab x') ctx
        return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
@@ -117,7 +117,7 @@ bisim2_unfix f (ctx@(nctx,_,_),p,q) =
        guard $ lp == lq
        (x, q1, p1) <- unbind2' bq' bp'
        let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
+                    | otherwise = subst x (V x') (p1, q1)
        let ctx' = case lp of DnB _ -> extend (All x') ctx
                              UpB _ -> extend (Nab x') ctx
        return . (and :: [Bool] -> Bool) $ f(ctx',p',q')
@@ -138,7 +138,7 @@ bisim2' ctx@(nctx,_,_) p q =
        guard $ lp == lq
        (x, p1, q1) <- unbind2' bp' bq'
        let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
+                    | otherwise = subst x (V x') (p1, q1)
        let ctx' = case lp of DnB _ -> extend (All x') ctx
                              UpB _ -> extend (Nab x') ctx
        returnR (OneB nctx (toEqC sigma) lq bq') $ bisim2' ctx' p' q'
@@ -158,7 +158,7 @@ bisim2' ctx@(nctx,_,_) p q =
        guard $ lp == lq
        (x, q1, p1) <- unbind2' bq' bp'
        let (p', q') | x == x'   = (p1, q1) -- to use same new quan var
-                    | otherwise = subst x (Var x') (p1, q1)
+                    | otherwise = subst x (V x') (p1, q1)
        let ctx' = case lp of DnB _ -> extend (All x') ctx
                              UpB _ -> extend (Nab x') ctx
        returnL (OneB nctx (toEqC sigma) lp bp') $ bisim2' ctx' p' q'
@@ -220,8 +220,8 @@ forest2df rs
     post sigmas a fs = Box a . disj $  (diaMat<$>sigmas) ++ fs
     preB sigma a x = boxMat sigma . DiaB a . bind x . conj
     postB sigmas a x fs = BoxB a . bind x . disj $  (diaMat<$>sigmas) ++ fs
-    boxMat  [] = id; boxMat  sigma = BoxMatch [(Var x,Var y) | (x,y)<-sigma]
-    diaMat  [] = FF; diaMat  sigma = DiaMatch [(Var x,Var y) | (x,y)<-sigma] TT
+    boxMat  [] = id; boxMat  sigma = BoxMatch [(V x,V y) | (x,y)<-sigma]
+    diaMat  [] = FF; diaMat  sigma = DiaMatch [(V x,V y) | (x,y)<-sigma] TT
     right1s  rs = [log | Node (Right  log@One{}) _ <- rs]
     left1s   rs = [log | Node (Left   log@One{}) _ <- rs]
     right1Bs  rs = [log | Node (Right  log@OneB{}) _ <- rs]

@@ -34,7 +34,7 @@ instance Pretty Quan where
   pPrintPrec l r (Nab x) = maybeParens (r > appPrec) $ text "Nab" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
 instance Pretty Tm where
-  pPrintPrec l r (Var x) = maybeParens (r > appPrec) $ text "Var" <+> ppp x
+  pPrintPrec l r (V x) = maybeParens (r > appPrec) $ text "V" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
 instance Pretty Act where
   pPrintPrec l r (Up x y) = maybeParens (r > appPrec) $ text "Up" <+> ppp x <+> ppp y
@@ -287,7 +287,7 @@ nm2bdw :: Fresh m => Nm -> m String
 nm2bdw x = return $ show x
 
 tm2bdw :: Fresh m => Tm -> m String
-tm2bdw (Var x) = nm2bdw x
+tm2bdw (V x) = nm2bdw x
 
 act2bdw :: Fresh m => Act -> m String
 act2bdw Tau      = return "tau"
@@ -351,7 +351,7 @@ runFreshMT (one p1) :: MonadPlus m => m (Act, Pr)
 *Main Lib> runFreshMT (one p1) :: [(Act,Pr)]
 [(Tau,Null),(Tau,TauP Null)]
 *Main Lib> runFreshMT (one q1) :: [(Act,Pr)]
-[(Tau,Match (Var x) (Var y) (TauP Null))]
+[(Tau,Match (V x) (V y) (TauP Null))]
 *Main Lib> runFreshMT (one p2) :: [(Act,Pr)]
-[(Up (Var x) (Var y),Par (In (Var x) (bind z(Out (Var x) (Var 0@0) Null))) Null),(Tau,Par (Out (Var x) (Var y) Null) Null)]
+[(Up (V x) (V y),Par (In (V x) (bind z(Out (V x) (V 0@0) Null))) Null),(Tau,Par (Out (V x) (V y) Null) Null)]
 -}

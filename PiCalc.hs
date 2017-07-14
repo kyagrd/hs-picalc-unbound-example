@@ -8,15 +8,17 @@
 {-# LANGUAGE UndecidableInstances      #-}
 
 module PiCalc where
-import           Data.List
 import           Data.List.Ordered       (nubSort)
 import           Data.Maybe
 import           Unbound.LocallyNameless
+import           Data.List               hiding (insert, map, null)
+import           Data.Map.Strict         hiding (insert, map, mapMaybe, null)
+import qualified Data.Map.Strict as M
 
 type Nm = Name Tm
 type Sym = String
 
-data Tm = Var Nm | D Sym [Tm] deriving (Eq,Ord,Show)
+data Tm = V Nm | D Sym [Tm] deriving (Eq,Ord,Show)
 data Eqn = Eq Tm Tm deriving Show
 
 
@@ -45,8 +47,8 @@ instance Alpha Act; instance Alpha ActB
 instance Alpha Pr; -- instance Alpha Form
 
 instance Subst Tm Tm where
-  isvar (Var x) = Just (SubstName x)
-  isvar _       = Nothing
+  isvar (V x) = Just (SubstName x)
+  isvar _     = Nothing
 instance Subst Tm Eqn
 instance Subst Tm Act;  instance Subst Tm ActB
 instance Subst Tm Pr; -- instance Subst Tm Form
@@ -56,9 +58,9 @@ occurs x t = x `elem` (fv t :: [Nm])
 infixr 1 .\
 (.\) = bind
 
-x .= y = Match (Var x) (Var y)
-inp = In . Var
-out x y = Out(Var x)(Var y)
+x .= y = Match (V x) (V y)
+inp = In . V
+out x y = Out(V x)(V y)
 tau = TauP Null
 tautau = TauP (TauP Null)
 
@@ -112,3 +114,42 @@ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
 everywhere rotateRight $ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
 red $ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
 -}
+
+
+
+
+{-
+Alternative implemntation of the rule-based unfication algorithm U
+from the unfication chapter of the "handbook of automated reasoning"
+http://www.cs.bu.edu/~snyder/publications/UnifChapter.pdf
+Instead of applying to the unification to the rest of the equation es,
+make a feedback when there already exists a mapping from same variable.
+Becuase the variables in the equations are not substituted by the current
+substitution, we need to use a helper function expand that expand terms
+according to the current substitution.
+-}
+
+expand s (V x) = case M.lookup x s of { Nothing -> V x; Just u -> expand s u }
+expand s (D f ts) = D f (expand s <$> ts)
+
+ustep :: Monad m => ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm)
+ustep (t1@(D f1 ts1) `Eq` t2@(D f2 ts2) : es, s)
+  | f1==f2 && length ts1==length ts2 = return (zipWith Eq ts1 ts2 ++ es, s)
+  | otherwise = fail $ show t1 ++" /= " ++ show t2
+ustep (t1@(D _ _) `Eq` t2@(V x) : es, s) = return (t2 `Eq` t1 : es, s)
+ustep (t1@(V x) `Eq` t2@(V y) : es, s)
+  | x == y = return (es, s)
+  | x > y = ustep (t2 `Eq` t1 : es, s)
+ustep (V x `Eq` t : es, s)
+  | occurs x t' = fail $ show x ++" occurs in "++show t
+                      ++ let t' = expand s t in
+                          if t /= t' then ", that is, "++show t' else ""
+  | M.member x s = return (s!x `Eq` t' : es, s')
+  | otherwise = return (es, s')
+    where
+      t' = expand s t
+      s' = M.insert x t' (subst x t' <$> s)
+
+u :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
+u ([], s) = return s
+u (es, s) = u =<< ustep (es, s)
