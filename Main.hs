@@ -12,7 +12,7 @@ import           Data.Tree
 import qualified IdSubLTS                       as IdS
 import           OpenBisim
 import           OpenLTS
-import           PiCalc
+import           PiCalc hiding (x,y,z)
 import           SubstLatt                      (someFunc)
 import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
