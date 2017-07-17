@@ -28,10 +28,13 @@ data Eqn = Eq Tm Tm deriving Show
 
 
 data Pr  = Null | TauP Pr | Out Tm Tm Pr | In Tm PrB | Match Tm Tm Pr
+         | Let (Bind (Tm, Embed Tm) Pr)
          | Plus Pr Pr | Par Pr Pr | Nu PrB  deriving (Eq, Ord, Show)
 type PrB = Bind Nm Pr
 instance Eq PrB where (==) = aeqBinders
 instance Ord PrB where compare = acompare
+instance Eq (Bind (Tm, Embed Tm) Pr) where (==) = aeqBinders
+instance Ord (Bind (Tm, Embed Tm) Pr) where compare = acompare
 
 data Act   = Up Tm Tm  | Tau     deriving (Eq, Ord, Show)
 data ActB  = UpB Tm    | DnB Tm  deriving (Eq, Ord, Show)
@@ -180,9 +183,15 @@ ddd = rulebind rule1
 
 rulebind rule = permbind (nub $ fv rule :: [Nm]) rule
 
+
+
+ruleSet = map rulebind [rule1,rule2,rule3]
+
 dec = D"dec"
 enc = D"enc"
 rule1 = (dec[enc[V x,V y], V y],  V x)
+rule2 = (D"fst"[D"pair"[V x,V y]], V x)
+rule3 = (D"snd"[D"pair"[V x,V y]], V y)
 ruleSet1 = map rulebind [rule1]
 
 

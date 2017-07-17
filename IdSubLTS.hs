@@ -15,6 +15,14 @@ one :: (Fresh m, Alternative m) => Pr -> m (Act, Pr)
 one (Out x y p)    = return (Up x y, p)
 one (TauP p)       = return (Tau, p)
 one (Match x y p)  | x == y = one p
+one (Let b)
+  = do ((pat,Embed t), p) <- unbind b
+       case (pat, t) of -- TODO check pat should not contain duplicat vars
+         (V x, _) -> one (subst x t p)
+         (D "pair" [pat1, pat2], D "pair" [t1, t2]) ->
+            one (Let (bind (pat1,embed t1) $ Let (bind (pat2,embed t2) p)))
+         (D "enc" [pat1, pat2], D "enc" [])  -> undefined
+         _ -> fail $ "unsupported pattern " ++ show pat
 one (Plus p q) = one p <|> one q
 one (Par p q)
   =    do  (l, p') <- one p;  return (l, Par p' q)
@@ -48,9 +56,9 @@ oneb (Par p q)   =     do  (l,(x,p')) <- oneb' p;  return (l, x.\Par p' q)
                  <|>   do  (l,(x,q')) <- oneb' q;  return (l, x.\Par p q')
 oneb (Nu b)      =     do  (x,p) <- unbind b
                            (l,(y,p')) <- oneb' p
-                           case l of  UpB (V x')   | x == x' -> empty
-                                      DnB (V x')   | x == x' -> empty
-                                      _              -> return (l, y.\Nu (x.\p'))
+                           case l of  UpB (V x') | x == x' -> empty
+                                      DnB (V x') | x == x' -> empty
+                                      _          -> return (l, y.\Nu (x.\p'))
                  <|>   do  (x,p) <- unbind b
                            (Up y (V x'),p') <- one p
                            guard $ x == x' && V x /= y
