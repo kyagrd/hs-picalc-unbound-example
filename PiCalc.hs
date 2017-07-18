@@ -10,10 +10,11 @@
 module PiCalc where
 import           Control.Applicative
 import           Data.Foldable           as F
-import           Data.List               hiding (insert, map, null)
+import           Data.List               (nub, (\\))
+import           Data.List               hiding (insert, map, null, union)
 import           Data.List.Ordered       (nubSort)
 import           Data.Map.Strict         hiding (insert, map, mapMaybe, null,
-                                          (\\))
+                                          union, (\\))
 import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Set                (Set (..))
@@ -158,9 +159,29 @@ ustep (V x `Eq` t : es, s)
       t' = expand s t
       s' = M.insert x t' (subst x t' <$> s)
 
-u :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
-u ([], s) = return s
-u (es, s) = u =<< ustep (es, s)
+mstep :: Monad m => ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm)
+mstep (t1@(D f1 ts1) `Eq` t2@(D f2 ts2) : es, s)
+  | f1==f2 && length ts1==length ts2 = return (zipWith Eq ts1 ts2 ++ es, s)
+  | otherwise = fail $ show t1 ++" /= " ++ show t2
+mstep (V x `Eq` t : es, s)
+  | occurs x t' = fail $ show x ++" occurs in "++show t
+                      ++ let t' = expand s t in
+                          if t /= t' then ", that is, "++show t' else ""
+  | M.member x s = fail $ show x ++" is not fresh in "++show s
+  | otherwise = return (es, s')
+    where
+      t' = expand s t
+      s' = M.insert x t' (subst x t' <$> s)
+
+-- unification
+uni :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
+uni ([], s) = return s
+uni (es, s) = uni =<< ustep (es, s)
+
+-- matching (left pattern matches right term)
+mat :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
+mat ([], s) = return s
+mat (es, s) = mat =<< mstep (es, s)
 
 
 
@@ -234,7 +255,7 @@ narrBy rules (t,poss,s) =
      runFreshMT $
        do mapM_ fresh (nub $ fv t :: [Nm])
           (_,(l,r)) <- unbind rule
-          s1 <- u ([l `Eq` atPos pos t],emptyMap)
+          s1 <- uni ([l `Eq` atPos pos t],emptyMap)
           let s2 = F.foldr extend s (M.toList s1)
           let subs = expand s1
           return (plugPos (subs t) pos (subs r), poss\\[pos], s2)
@@ -256,7 +277,46 @@ subvariant rules t =
 unifiersModulo rules (t1,t2) =
   do (D"_"[t1',t2'], _, s) <- kleeneClosure (narrBy rules)
                                 (D"_"[t1,t2], subtermInit $ D"_"[t1,t2], emptyMap)
-     s <- u ([t1' `Eq ` t2'], s)
+     s <- uni ([t1' `Eq ` t2'], s)
      return $ M.filterWithKey (\k _ -> k `elem` fvs) s
   where
   fvs = nub $ fv (t1,t2) :: [Nm]
+
+
+-- TODO reduce fucntion ???
+
+
+
+
+type Knw = [Tm]
+
+syn knw t@(V x) = t `elem` knw
+syn knw (D "pair" [t1, t2]) = syn knw t1 && syn knw t2
+syn knw t@(D "enc" [t1, t2]) | syn knw t2 = syn knw t1
+                             | otherwise = t `elem` knw
+
+newKnw :: Tm -> Knw -> Knw
+newKnw t@(V _) knw
+  | syn knw t  = []
+  | otherwise = nub . concat $ (nub . uncurry newKnw) <$> xknws
+  where
+    xknws = do { x <- knw; return (x, t : (knw \\ [x])) }
+newKnw t@(D "pair" [t1, t2]) knw
+  | syn knw t  = []
+  | syn knw t1 = t2new
+  | syn knw t2 = t1new
+  | otherwise  = nub . concat $ (nub . uncurry newKnw) <$> xknws
+  where
+    t1new = nub $ newKnw t1 knw
+    t2new = nub $ newKnw t2 knw
+    t12new = t1new `union` t2new
+    xknws = do { x <- knw; return (x, t12new ++ (knw \\ [x])) }
+newKnw t@(D "enc" [t1, t2]) knw
+  | syn knw t  = []
+  | syn knw t2 = newKnw t1 knw
+  | otherwise = nub . concat $ (nub . uncurry newKnw) <$> xknws
+  where
+    xknws = do { x <- knw; return (x, t : (knw \\ [x])) }
+
+addKnw :: Tm -> Knw -> Knw
+addKnw t knw = newKnw t knw `union` knw
