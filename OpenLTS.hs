@@ -164,11 +164,11 @@ one_ _    _      = empty
 one_b :: (Fresh m, Alternative m) => Ctx' -> Pr -> m (EqC',(ActB, PrB))
 one_b ctx (In x p) = return (P.empty, (DnB x, p))
 one_b ctx (Match (V x) (V y) p)  | x == y                   = one_b ctx p
-                                     | [(x,y)] `respects'` ctx  =
-                                           do  (sigma, r) <- one_b ctx p
-                                               let sigma' = joinNm ctx (x,y) sigma
-                                               guard $ sigma' `respects_` ctx
-                                               return (sigma', r)
+                                 | [(x,y)] `respects'` ctx  =
+                                   do  (sigma, r) <- one_b ctx p
+                                       let sigma' = joinNm ctx (x,y) sigma
+                                       guard $ sigma' `respects_` ctx
+                                       return (sigma', r)
 one_b ctx (Plus p q) = one_b ctx p <|> one_b ctx q
 one_b ctx (Par p q) =
        do (sigma,(l,(x,p'))) <- one_b' ctx p;  return (sigma,(l, x.\Par p' q))

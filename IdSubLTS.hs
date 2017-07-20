@@ -10,6 +10,7 @@ import           Control.Applicative
 import           Control.Monad
 import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
+{-# ANN module "HLint: ignore Use mappend" #-}
 
 one :: (Fresh m, Alternative m) => Knw -> Pr -> m (Act, Pr)
 one _   (Out x y p)    = return (Up x y, p)

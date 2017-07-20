@@ -13,14 +13,15 @@ import           Data.Foldable           as F
 import           Data.List               (nub, (\\))
 import           Data.List               hiding (insert, map, null, union)
 import           Data.List.Ordered       (nubSort)
-import           Data.Map.Strict         hiding (insert, map, mapMaybe, null,
-                                          union, (\\))
+import           Data.Map.Strict         hiding (foldr, insert, map, mapMaybe,
+                                          null, union, (\\))
 import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Set                (Set (..))
 import qualified Data.Set                as S
 import           Unbound.LocallyNameless
-
+{-# ANN module "HLint: ignore Use mappend" #-}
+{-# ANN module "HLint: ignore Use fmap" #-}
 type Nm = Name Tm
 type Sym = String
 
@@ -295,28 +296,23 @@ syn knw (D "pair" [t1, t2]) = syn knw t1 && syn knw t2
 syn knw t@(D "enc" [t1, t2]) | syn knw t2 = syn knw t1
                              | otherwise = t `elem` knw
 
-newKnw :: Tm -> Knw -> Knw
-newKnw t@(V _) knw
+newKnw1 t@(V _) knw
+  | syn knw t = []
+  | otherwise = [t]
+newKnw1 (D "pair" [t1, t2]) knw = newKnw1 t1 knw `union` newKnw1 t2 knw
+newKnw1 t@(D "enc" [t1, t2]) knw
   | syn knw t  = []
-  | otherwise = nub . concat $ (nub . uncurry newKnw) <$> xknws
+  | syn knw t2 = newKnw1 t1 knw
+  | otherwise  = [t]
+
+moreKnw ts knw = foldr union ts [newKnw1 u (ts++(knw\\[u])) \\ [u] | u <- knw]
+
+newKnw t knw
+  | null moreknw = newknw1
+  | otherwise = moreknw `union` newKnw t (moreknw `union` knw)
   where
-    xknws = do { x <- knw; return (x, t : (knw \\ [x])) }
-newKnw t@(D "pair" [t1, t2]) knw
-  | syn knw t  = []
-  | syn knw t1 = t2new
-  | syn knw t2 = t1new
-  | otherwise  = nub . concat $ (nub . uncurry newKnw) <$> xknws
-  where
-    t1new = nub $ newKnw t1 knw
-    t2new = nub $ newKnw t2 knw
-    t12new = t1new `union` t2new
-    xknws = do { x <- knw; return (x, t12new ++ (knw \\ [x])) }
-newKnw t@(D "enc" [t1, t2]) knw
-  | syn knw t  = []
-  | syn knw t2 = newKnw t1 knw
-  | otherwise = nub . concat $ (nub . uncurry newKnw) <$> xknws
-  where
-    xknws = do { x <- knw; return (x, t : (knw \\ [x])) }
+    newknw1 = newKnw1 t knw
+    moreknw = moreKnw newknw1 knw
 
 addKnw :: Tm -> Knw -> Knw
 addKnw t knw = newKnw t knw `union` knw
