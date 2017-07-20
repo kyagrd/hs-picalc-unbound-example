@@ -72,8 +72,8 @@ oneb knw (Par p q)   =     do  (l,(x,p')) <- oneb' knw p;  return (l, x.\Par p' 
                      <|>   do  (l,(x,q')) <- oneb' knw q;  return (l, x.\Par p q')
 oneb knw (Nu b)      =     do  (x,p) <- unbind b
                                (l,(y,p')) <- oneb' knw p
-                               case l of  UpB (V x') | x == x' -> empty
-                                          DnB (V x') | x == x' -> empty
+                               case l of  UpB _ | x `notElem` (fv l :: [Nm]) -> empty
+                                          DnB _ | x `notElem` (fv l :: [Nm]) -> empty
                                           _          -> return (l, y.\Nu (x.\p'))
                      <|>   do  (x,p) <- unbind b
                                (Up y t2,p') <- one knw p

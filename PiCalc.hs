@@ -26,7 +26,7 @@ type Nm = Name Tm
 type Sym = String
 
 data Tm = V Nm | D Sym [Tm] deriving (Eq,Ord,Show)
-data Eqn = Eq Tm Tm deriving Show
+type Eqn = (Tm,Tm)
 
 
 data Pr  = Null | TauP Pr | Out Tm Tm Pr | In Tm PrB | Match Tm Tm Pr
@@ -49,17 +49,16 @@ type FormB = Bind Nm Form
 instance Eq FormB where (==) = aeqBinders
 instance Ord FormB where compare = acompare
 -}
--- $(derive [''Tm, ''Eqn, ''Act, ''ActB, ''Pr, ''Form])
-$(derive [''Tm, ''Eqn, ''Act, ''ActB, ''Pr])
+-- $(derive [''Tm, ''Act, ''ActB, ''Pr, ''Form])
+$(derive [''Tm, ''Act, ''ActB, ''Pr])
 
-instance Alpha Tm; instance Alpha Eqn
+instance Alpha Tm
 instance Alpha Act; instance Alpha ActB
 instance Alpha Pr; -- instance Alpha Form
 
 instance Subst Tm Tm where
   isvar (V x) = Just (SubstName x)
   isvar _     = Nothing
-instance Subst Tm Eqn
 instance Subst Tm Act;  instance Subst Tm ActB
 instance Subst Tm Pr; -- instance Subst Tm Form
 
@@ -143,28 +142,28 @@ expand s (V x) = case M.lookup x s of { Nothing -> V x; Just u -> expand s u }
 expand s (D f ts) = D f (expand s <$> ts)
 
 ustep :: Monad m => ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm)
-ustep (t1@(D f1 ts1) `Eq` t2@(D f2 ts2) : es, s)
-  | f1==f2 && length ts1==length ts2 = return (zipWith Eq ts1 ts2 ++ es, s)
+ustep ((t1@(D f1 ts1),t2@(D f2 ts2)) : es, s)
+  | f1==f2 && length ts1==length ts2 = return (zip ts1 ts2 ++ es, s)
   | otherwise = fail $ show t1 ++" /= " ++ show t2
-ustep (t1@(D _ _) `Eq` t2@(V x) : es, s) = return (t2 `Eq` t1 : es, s)
-ustep (t1@(V x) `Eq` t2@(V y) : es, s)
+ustep ((t1@(D _ _),t2@(V x)) : es, s) = return ((t2,t1) : es, s)
+ustep ((t1@(V x),t2@(V y)) : es, s)
   | x == y = return (es, s)
-  | x > y = ustep (t2 `Eq` t1 : es, s)
-ustep (V x `Eq` t : es, s)
+  | x > y = ustep ((t2,t1) : es, s)
+ustep ((V x, t) : es, s)
   | occurs x t' = fail $ show x ++" occurs in "++show t
                       ++ let t' = expand s t in
                           if t /= t' then ", that is, "++show t' else ""
-  | M.member x s = return (s!x `Eq` t' : es, s')
+  | M.member x s = return ((s!x, t') : es, s')
   | otherwise = return (es, s')
     where
       t' = expand s t
       s' = M.insert x t' (subst x t' <$> s)
 
 mstep :: Monad m => ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm)
-mstep (t1@(D f1 ts1) `Eq` t2@(D f2 ts2) : es, s)
-  | f1==f2 && length ts1==length ts2 = return (zipWith Eq ts1 ts2 ++ es, s)
+mstep ((t1@(D f1 ts1),t2@(D f2 ts2)) : es, s)
+  | f1==f2 && length ts1==length ts2 = return (zip ts1 ts2 ++ es, s)
   | otherwise = fail $ show t1 ++" /= " ++ show t2
-mstep (V x `Eq` t : es, s)
+mstep ((V x, t): es, s)
   | occurs x t' = fail $ show x ++" occurs in "++show t
                       ++ let t' = expand s t in
                           if t /= t' then ", that is, "++show t' else ""
@@ -175,14 +174,14 @@ mstep (V x `Eq` t : es, s)
       s' = M.insert x t' (subst x t' <$> s)
 
 -- unification
-uni :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
-uni ([], s) = return s
-uni (es, s) = uni =<< ustep (es, s)
+uni :: Monad m => [Eqn] -> Map Nm Tm -> m (Map Nm Tm)
+uni [] s = return s
+uni es s = uncurry uni =<< ustep (es, s)
 
 -- matching (left pattern matches right term)
-mat :: Monad m => ([Eqn], Map Nm Tm) -> m (Map Nm Tm)
-mat ([], s) = return s
-mat (es, s) = mat =<< mstep (es, s)
+mat :: Monad m => [Eqn] -> Map Nm Tm -> m (Map Nm Tm)
+mat [] s = return s
+mat es s = uncurry mat =<< mstep (es, s)
 
 
 
@@ -256,7 +255,7 @@ narrBy rules (t,poss,s) =
      runFreshMT $
        do mapM_ fresh (nub $ fv t :: [Nm])
           (_,(l,r)) <- unbind rule
-          s1 <- uni ([l `Eq` atPos pos t],emptyMap)
+          s1 <- uni [(l, atPos pos t)] emptyMap
           let s2 = F.foldr extend s (M.toList s1)
           let subs = expand s1
           return (plugPos (subs t) pos (subs r), poss\\[pos], s2)
@@ -278,7 +277,7 @@ subvariant rules t =
 unifiersModulo rules (t1,t2) =
   do (D"_"[t1',t2'], _, s) <- kleeneClosure (narrBy rules)
                                 (D"_"[t1,t2], subtermInit $ D"_"[t1,t2], emptyMap)
-     s <- uni ([t1' `Eq ` t2'], s)
+     s <- uni [(t1',t2')] s
      return $ M.filterWithKey (\k _ -> k `elem` fvs) s
   where
   fvs = nub $ fv (t1,t2) :: [Nm]
@@ -291,18 +290,21 @@ unifiersModulo rules (t1,t2) =
 
 type Knw = [Tm]
 
-syn knw t@(V x) = t `elem` knw
-syn knw (D "pair" [t1, t2]) = syn knw t1 && syn knw t2
-syn knw t@(D "enc" [t1, t2]) | syn knw t2 = syn knw t1
-                             | otherwise = t `elem` knw
+syn [] _         =  False
+syn knw@(k:ks) t = syn1 (newKnw k knw `union` knw) t
+
+syn1 knw t@(V x) = t `elem` knw
+syn1 knw (D "pair" [t1, t2]) = syn1 knw t1 && syn1 knw t2
+syn1 knw t@(D "enc" [t1, t2]) | syn1 knw t2 = syn1 knw t1
+                              | otherwise = t `elem` knw
 
 newKnw1 t@(V _) knw
-  | syn knw t = []
+  | syn1 knw t = []
   | otherwise = [t]
 newKnw1 (D "pair" [t1, t2]) knw = newKnw1 t1 knw `union` newKnw1 t2 knw
 newKnw1 t@(D "enc" [t1, t2]) knw
-  | syn knw t  = []
-  | syn knw t2 = newKnw1 t1 knw
+  | syn1 knw t  = []
+  | syn1 knw t2 = newKnw1 t1 knw
   | otherwise  = [t]
 
 moreKnw ts knw = foldr union ts [newKnw1 u (ts++(knw\\[u])) \\ [u] | u <- knw]
