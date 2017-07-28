@@ -19,7 +19,7 @@ import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Set                (Set (..))
 import qualified Data.Set                as S
-import           Unbound.LocallyNameless
+import           Unbound.LocallyNameless hiding (Con)
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
 type Nm = Name Tm
@@ -33,13 +33,20 @@ data Pr  = Null | TauP Pr | Out Tm Tm Pr | In Tm PrB | Match Tm Tm Pr
          | Let (Bind (Tm, Embed Tm) Pr)
          | Plus Pr Pr | Par Pr Pr | Nu PrB  deriving (Eq, Ord, Show)
 type PrB = Bind Nm Pr
+
+data Ag  = Con Tm Pr | Abs PrB | New AgB deriving (Eq, Ord, Show)
+type AgB = Bind Nm Ag
+
 instance Eq PrB where (==) = aeqBinders
 instance Ord PrB where compare = acompare
 instance Eq (Bind (Tm, Embed Tm) Pr) where (==) = aeqBinders
 instance Ord (Bind (Tm, Embed Tm) Pr) where compare = acompare
 
-data Act   = Up Tm Tm  | Tau     deriving (Eq, Ord, Show)
-data ActB  = UpB Tm    | DnB Tm  deriving (Eq, Ord, Show)
+instance Eq AgB where (==) = aeqBinders
+instance Ord AgB where compare = acompare
+
+
+data Act   = Up Tm | Dn Tm | Tau     deriving (Eq, Ord, Show)
 {-
 data Form  = FF | TT | Conj [Form] | Disj [Form]
            | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form
@@ -50,17 +57,19 @@ instance Eq FormB where (==) = aeqBinders
 instance Ord FormB where compare = acompare
 -}
 -- $(derive [''Tm, ''Act, ''ActB, ''Pr, ''Form])
-$(derive [''Tm, ''Act, ''ActB, ''Pr])
+$(derive [''Tm, ''Act, ''Pr, ''Ag])
 
 instance Alpha Tm
-instance Alpha Act; instance Alpha ActB
+instance Alpha Act
 instance Alpha Pr; -- instance Alpha Form
+instance Alpha Ag
 
 instance Subst Tm Tm where
   isvar (V x) = Just (SubstName x)
   isvar _     = Nothing
-instance Subst Tm Act;  instance Subst Tm ActB
+instance Subst Tm Act
 instance Subst Tm Pr; -- instance Subst Tm Form
+instance Subst Tm Ag
 
 occurs x t = x `elem` (fv t :: [Nm])
 
@@ -141,6 +150,21 @@ according to the current substitution.
 expand s (V x) = case M.lookup x s of { Nothing -> V x; Just u -> expand s u }
 expand s (D f ts) = D f (expand s <$> ts)
 
+
+
+unifyWith, matchWith :: Monad m =>
+  ( ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm) )
+  -> [Eqn] -> Map Nm Tm -> m (Map Nm Tm)
+-- unification
+unifyWith step [] s = return s
+unifyWith step es s = uncurry (unifyWith step) =<< step (es, s)
+-- matching (left pattern matches right term)
+matchWith step [] s = return s
+matchWith step es s = uncurry (matchWith step) =<< step (es, s)
+
+-- uni = unifyWith ustep
+-- mat = matchWith mstep
+
 ustep :: Monad m => ([Eqn], Map Nm Tm) -> m ([Eqn], Map Nm Tm)
 ustep ((t1@(D f1 ts1),t2@(D f2 ts2)) : es, s)
   | f1==f2 && length ts1==length ts2 = return (zip ts1 ts2 ++ es, s)
@@ -172,17 +196,6 @@ mstep ((V x, t): es, s)
     where
       t' = expand s t
       s' = M.insert x t' (subst x t' <$> s)
-
--- unification
-uni :: Monad m => [Eqn] -> Map Nm Tm -> m (Map Nm Tm)
-uni [] s = return s
-uni es s = uncurry uni =<< ustep (es, s)
-
--- matching (left pattern matches right term)
-mat :: Monad m => [Eqn] -> Map Nm Tm -> m (Map Nm Tm)
-mat [] s = return s
-mat es s = uncurry mat =<< mstep (es, s)
-
 
 
 emptyMap = M.empty
@@ -260,6 +273,7 @@ narrBy rules (t,poss,s) =
           let subs = expand s1
           return (plugPos (subs t) pos (subs r), poss\\[pos], s2)
      where
+       uni = unifyWith ustep
        extend (x,t) s = let t' = expand s t
                          in M.insert x t' (subst x t' <$> s)
 
@@ -280,7 +294,8 @@ unifiersModulo rules (t1,t2) =
      s <- uni [(t1',t2')] s
      return $ M.filterWithKey (\k _ -> k `elem` fvs) s
   where
-  fvs = nub $ fv (t1,t2) :: [Nm]
+    uni = unifyWith ustep
+    fvs = nub $ fv (t1,t2) :: [Nm]
 
 
 -- TODO reduce fucntion ???

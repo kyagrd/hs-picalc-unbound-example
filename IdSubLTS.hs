@@ -9,121 +9,71 @@ module IdSubLTS where
 import           Control.Applicative
 import           Control.Monad
 import           PiCalc
-import           Unbound.LocallyNameless hiding (empty)
+import           Unbound.LocallyNameless hiding (Con, empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
 
-one :: (Fresh m, Alternative m) => Knw -> Pr -> m (Act, Pr)
-one _   (Out x y p)    = return (Up x y, p)
-one _   (TauP p)       = return (Tau, p)
-one knw (Match x y p)  | x == y = one knw p
-one knw (Let b)
+-- TODO redTm
+redPr (Match x y p) | x == y = return p
+redPr (Let b)
   = do ((pat,Embed t), p) <- unbind b
-       -- TODO check pat should not contain duplicat vars
+       -- TODO well formedness chk e.g. pat should not contain duplicat vars
        case (pat, t) of
-         (V x, _) -> one knw (subst x t p)
+         (V x, _) -> return (subst x t p)
          (D "pair" [pat1, pat2], D "pair" [t1, t2])
-            -> one knw $ Let (bind (pat1,embed t1) $ Let (bind (pat2,embed t2) p))
+            -> return $ Let (bind (pat1,embed t1) $ Let (bind (pat2,embed t2) p))
          (D "pair" [_, _], _) -> empty
-         (D "enc" [pat1, pat2], D "enc" [t1, t2]) | syn knw t2
-            -> one knw $ Let (bind (pat2, embed t2) $ Let (bind (pat1, embed t1) p))
          (D "enc" [_, _], _) -> empty
          _ -> fail $ "unsupported pattern " ++ show pat
-one knw (Plus p q) = one knw p <|> one knw q
-one knw (Par p q)
-  =    do  (l, p') <- one knw p;  return (l, Par p' q)
-  <|>  do  (l, q') <- one knw q;  return (l, Par p q')
-  <|>  do  (lp, bp) <- oneb knw p;  (lq, bq) <- oneb knw q
-           case (lp, lq) of  (UpB x,DnB x') | x == x'           -- close
-                                            -> do  (y, p', q') <- unbind2' bp bq
-                                                   return (Tau, Nu(y.\Par p' q'))
-                             (DnB x',UpB x) | x' == x           -- close
-                                            -> do  (y, q', p') <- unbind2' bq bp
-                                                   return (Tau, Nu(y.\Par p' q'))
-                             _              -> empty
-  <|>  do  (Up x v, p') <- one knw p;  (DnB x', (y,q')) <- oneb' knw q
-           guard $ x == x'
-           return (Tau, Par p' (subst y v q'))  -- interaction
-  <|>  do  (DnB x', (y,p')) <- oneb' knw p;  (Up x v, q') <- one knw q
-           guard $ x == x'
-           return (Tau, Par (subst y v p') q')  -- interaction
-one knw (Nu b) = do  (x,p) <- unbind b
-                     (l,p') <- one knw p
-                     case l of  Up _ _ | x `elem` (fv l :: [Nm]) -> empty
-                                _      -> return (l, Nu (x.\p'))
-one _   _  = empty
+redPr _ = empty
 
-oneb :: (Fresh m, Alternative m) => Knw -> Pr -> m (ActB, PrB)
-oneb _   (In x p)      = return (DnB x, p)
-oneb knw (Match x y p) | x == y = oneb knw p
-oneb knw (Let b)
-  = do ((pat,Embed t), p) <- unbind b
-       -- TODO check pat should not contain duplicat vars
-       case (pat, t) of
-         (V x, _) -> oneb knw (subst x t p)
-         (D "pair" [pat1, pat2], D "pair" [t1, t2])
-            -> oneb knw $ Let (bind (pat1,embed t1) $ Let (bind (pat2,embed t2) p))
-         (D "pair" [_, _], _) -> empty
-         (D "enc" [pat1, pat2], D "enc" [t1, t2]) | syn knw t2
-            -> oneb knw $ Let (bind (pat2, embed t2) $ Let (bind (pat1, embed t1) p))
-         (D "enc" [_, _], _) -> empty
-         _ -> fail $ "unsupported pattern " ++ show pat
-oneb knw (Plus p q)  = oneb knw p <|> oneb knw q
-oneb knw (Par p q)   =     do  (l,(x,p')) <- oneb' knw p;  return (l, x.\Par p' q)
-                     <|>   do  (l,(x,q')) <- oneb' knw q;  return (l, x.\Par p q')
-oneb knw (Nu b)      =     do  (x,p) <- unbind b
-                               (l,(y,p')) <- oneb' knw p
-                               case l of  UpB _ | x `notElem` (fv l :: [Nm]) -> empty
-                                          DnB _ | x `notElem` (fv l :: [Nm]) -> empty
-                                          _          -> return (l, y.\Nu (x.\p'))
-                     <|>   do  (x,p) <- unbind b
-                               (Up y t2,p') <- one knw p
-                               guard $ x `elem` (fv t2 :: [Nm]) && V x /= y
-                               return (UpB y, x.\p')  -- open
-oneb _   _           = empty
+one :: (Fresh m, Alternative m) => Pr -> m (Act, Pr)
+one (TauP p)   = return (Tau, p)
+one (Plus p q) = one p <|> one q
+one (Par p q) =    do  (l, p') <- one p;  return (l, Par p' q)
+              <|>  do  (l, q') <- one q;  return (l, Par p q')
+              <|>  do  (Up x, pc) <- oneb p;  (Dn x', qa) <- oneb q
+                       guard $ x == x';  (,) Tau <$> conabs pc qa
+              <|>  do  (Dn x', pa) <- oneb p;  (Up x, qc) <- oneb q
+                       guard $ x == x';  (,) Tau <$> abscon pa qc
+one (Nu b) = do (x,p) <- unbind b;  (l,p') <- one p
+                guard $ x `notElem` (fv l :: [Nm])
+                return (l, Nu (x.\p'))
+one p          = one =<< redPr p
 
-oneb' knw p = do (l,b) <- oneb knw p; r <- unbind b; return (l,r)
+oneb :: (Fresh m, Alternative m) => Pr -> m (Act, Ag)
+oneb (In x p)    = return (Dn x, Abs p)
+oneb (Out x y p) = return (Up x, Con y p)
+oneb (Plus p q)  = oneb p <|> oneb q
+oneb (Par p q)   =     do  (l,pa) <- oneb p;  (,) l <$> parAP pa q
+                 <|>   do  (l,qa) <- oneb q;  (,) l <$> parPA p qa
+oneb (Nu b)
+  =     do  (x,p) <- unbind b;  (l,pa) <- oneb p
+            case (l,pa) of
+              (Dn _, Abs bp) -> do (y,p') <- unbind bp;
+                                   return (l, Abs $ y.\ Nu(x.\p'))
+              (Up _, _) -> undefined {-
+                | x `notElem` (fv l :: [Nm])
+                            ->
+                | otherwise ->
+                                      Dn _ | x `notElem` (fv l :: [Nm]) -> empty
+                                      _    -> return (l, y.\Nu (x.\p'))
+                        -}
+oneb p           = oneb =<< redPr p
 
-{-
-% Finite pi-calculus specification in lambda-Prolog
-% A specification of the late transition system for the finite pi calculus.
+-- oneb' p = do (l,b) <- oneb p; r <- unbind b; return (l,r)
 
-% bound input
-oneb (in X M) (dn X) M.
 
-% free output
-one (out X Y P) (up X Y) P.
+abscon, conabs :: Fresh m => Ag -> Ag -> m Pr
+abscon (Abs bp) (Con t q) = do (x,p) <- unbind bp; return $ subst x t p `Par` q
+abscon pa (New bq) = do (x,qc) <- unbind bq; Nu . (x.\) <$> abscon pa qc
+conabs (Con t p) (Abs bq) = do (x,q) <- unbind bq; return $ p `Par` subst x t q
+conabs (New bp) qa = do (x,pc) <- unbind bp; Nu . (x.\) <$> conabs pc qa
 
-% tau
-one  (taup P) tau P.
-
-% match prefix
-one  (match X X P) A Q :- one  P A Q.
-oneb (match X X P) A M :- oneb P A M.
-
-% sum
-one  (plus P Q) A R :- one  P A R.
-one  (plus P Q) A R :- one  Q A R.
-oneb (plus P Q) A M :- oneb P A M.
-oneb (plus P Q) A M :- oneb Q A M.
-
-% par
-one  (par P Q) A (par P1 Q) :- one P A P1.
-one  (par P Q) A (par P Q1) :- one Q A Q1.
-oneb (par P Q) A (x\par (M x) Q) :- oneb P A M.
-oneb (par P Q) A (x\par P (N x)) :- oneb Q A N.
-
-% restriction
-one  (nu x\P x) A (nu x\Q x)      :- pi x\ one  (P x) A (Q x).
-oneb (nu x\P x) A (y\ nu x\Q x y) :- pi x\ oneb (P x) A (y\ Q x y).
-
-% open
-oneb (nu x\M x) (up X) N :- pi y\ one (M y) (up X y) (N y).
-
-% close
-one (par P Q) tau (nu y\ par (M y) (N y)) :- oneb P (dn X) M , oneb Q (up X) N.
-one (par P Q) tau (nu y\ par (M y) (N y)) :- oneb P (up X) M , oneb Q (dn X) N.
-
-% comm
-one (par P Q) tau (par (M Y) T) :-  oneb P (dn X) M, one Q (up X Y) T.
-one (par P Q) tau (par R (M Y)) :-  oneb Q (dn X) M, one P (up X Y) R.
--}
+parAP :: Fresh m => Ag -> Pr -> m Ag
+parAP (Con t p) q = return . Con t $ p `Par` q
+parAP (New bp) q  = do (x,pa) <- unbind bp;  New . (x.\) <$> parAP pa q
+parAP (Abs bp) q  = do (x,p) <- unbind bp; return . Abs $ x.\ p `Par` q
+parPA :: Fresh m => Pr -> Ag -> m Ag
+parPA p (Con t q) = return . Con t $ p `Par` q
+parPA p (New bq)  = do (x,qa) <- unbind bq;  New . (x.\) <$> parPA p qa
+parPA p (Abs bq)  = do (x,q) <- unbind bq; return . Abs $ x.\ p `Par` q
