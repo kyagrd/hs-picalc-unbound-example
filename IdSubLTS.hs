@@ -8,18 +8,23 @@
 module IdSubLTS where
 import           Control.Applicative
 import           Control.Monad
+import qualified Data.Set                as Set
 import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
 
-one :: (Fresh m, Alternative m) => Pr -> m (Act, Pr)
-one (Out x y p)    = return (Up x y, p)
-one (TauP p)       = return (Tau, p)
-one (Match x y p)  | x == y = one p
-one (Plus p q) = one p <|> one q
-one (Par p q)
-  =    do  (l, p') <- one p;  return (l, Par p' q)
-  <|>  do  (l, q') <- one q;  return (l, Par p q')
-  <|>  do  (lp, bp) <- oneb p;  (lq, bq) <- oneb q
+type NmSet = Set.Set Nm
+
+one :: (Fresh m, Alternative m) => NmSet -> Pr -> m (Act, Pr)
+one _ (Out x y p)    = return (Up x y, p)
+one _ (TauP p)       = return (Tau, p)
+one ns (Match x y p)  | x == y = one ns p
+one ns (Diff (Var x) (Var y) p)
+  | (Set.member x ns || Set.member y ns) && x /= y   = one ns p
+one ns (Plus p q) = one ns p <|> one ns q
+one ns (Par p q)
+  =    do  (l, p') <- one ns p;  return (l, Par p' q)
+  <|>  do  (l, q') <- one ns q;  return (l, Par p q')
+  <|>  do  (lp, bp) <- oneb ns p;  (lq, bq) <- oneb ns q
            case (lp, lq) of  (UpB x,DnB x') | x == x'           -- close
                                             -> do  (y, p', q') <- unbind2' bp bq
                                                    return (Tau, Nu(y.\Par p' q'))
@@ -27,39 +32,43 @@ one (Par p q)
                                             -> do  (y, q', p') <- unbind2' bq bp
                                                    return (Tau, Nu(y.\Par p' q'))
                              _              -> empty
-  <|>  do  (Up x v, p') <- one p;  (DnB x', (y,q')) <- oneb' q
+  <|>  do  (Up x v, p') <- one ns p;  (DnB x', (y,q')) <- oneb' ns q
            guard $ x == x'
            return (Tau, Par p' (subst y v q'))  -- interaction
-  <|>  do  (DnB x', (y,p')) <- oneb' p;  (Up x v, q') <- one q
+  <|>  do  (DnB x', (y,p')) <- oneb' ns p;  (Up x v, q') <- one ns q
            guard $ x == x'
            return (Tau, Par (subst y v p') q')  -- interaction
-one (Nu b)  = do  (x,p) <- unbind b
-                  (l,p') <- one p
-                  case l of  Up (Var x') (Var y)  | x == x'  -> empty
-                                                  | x == y   -> empty
-                             _                    -> return (l, Nu (x.\p'))
-one _       = empty
+one ns (Nu b)  = do  (x,p) <- unbind b
+                     (l,p') <- one (Set.insert x ns) p
+                     case l of  Up (Var x') (Var y)  | x == x'  -> empty
+                                                     | x == y   -> empty
+                                _                    -> return (l, Nu (x.\p'))
+one _ _       = empty
+-- TODO mismatch
 
-oneb :: (Fresh m, Alternative m) => Pr -> m (ActB, PrB)
-oneb (In x p)      = return (DnB x, p)
-oneb (Match x y p) | x == y = oneb p
-oneb (Plus p q)  = oneb p <|> oneb q
-oneb (Par p q)   =     do  (l,(x,p')) <- oneb' p;  return (l, x.\Par p' q)
-                 <|>   do  (l,(x,q')) <- oneb' q;  return (l, x.\Par p q')
-oneb (Nu b)      =     do  (x,p) <- unbind b
-                           (l,(y,p')) <- oneb' p
-                           case l of  UpB (Var x')   | x == x' -> empty
-                                      DnB (Var x')   | x == x' -> empty
-                                      _              -> return (l, y.\Nu (x.\p'))
-                 <|>   do  (x,p) <- unbind b
-                           (Up y (Var x'),p') <- one p
-                           guard $ x == x' && Var x /= y
-                           return (UpB y, x.\p')  -- open
-oneb _           = empty
+oneb :: (Fresh m, Alternative m) => NmSet -> Pr -> m (ActB, PrB)
+oneb _ (In x p)     = return (DnB x, p)
+oneb ns (Match x y p) | x == y = oneb ns p
+oneb ns (Diff (Var x) (Var y) p)
+  | (Set.member x ns || Set.member y ns) && x /= y   = oneb ns p
+oneb ns (Plus p q)  = oneb ns p <|> oneb ns q
+oneb ns (Par p q)   =     do  (l,(x,p')) <- oneb' ns p;  return (l, x.\Par p' q)
+                    <|>   do  (l,(x,q')) <- oneb' ns q;  return (l, x.\Par p q')
+oneb ns (Nu b)      =     do  (x,p) <- unbind b
+                              (l,(y,p')) <- oneb' (Set.insert x ns) p
+                              case l of  UpB (Var x')   | x == x' -> empty
+                                         DnB (Var x')   | x == x' -> empty
+                                         _              -> return (l, y.\Nu (x.\p'))
+                    <|>   do  (x,p) <- unbind b
+                              (Up y (Var x'),p') <- one ns p
+                              guard $ x == x' && Var x /= y
+                              return (UpB y, x.\p')  -- open
+oneb _ _           = empty
 
-oneb' p = do (l,b) <- oneb p; r <- unbind b; return (l,r)
+oneb' ns p = do (l,b) <- oneb ns p; r <- unbind b; return (l,r)
 
 {-
+  p
 % Finite pi-calculus specification in lambda-Prolog
 % A specification of the late transition system for the finite pi calculus.
 
