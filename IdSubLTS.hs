@@ -47,7 +47,7 @@ one _ _       = empty
 -- TODO mismatch
 
 oneb :: (Fresh m, Alternative m) => NmSet -> Pr -> m (ActB, PrB)
-oneb _ (In x p)     = return (DnB x, p)
+oneb _ (In x b)     = return (DnB x, p)
 oneb ns (Match x y p) | x == y = oneb ns p
 oneb ns (Diff (Var x) (Var y) p)
   | (Set.member x ns || Set.member y ns) && x /= y   = oneb ns p
