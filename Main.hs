@@ -8,6 +8,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
+import qualified Data.Set                       as Set
 import           Data.Tree
 import qualified IdSubLTS                       as IdS
 import           OpenBisim
@@ -24,18 +25,19 @@ import           Unbound.LocallyNameless
 
 main = print "hello, world"
 
-{-
 appPrec :: Rational
 appPrec = 10
 
 pp = print . pPrint
 
 instance Pretty Nm where pPrint = text . show
+{-
 instance Pretty Quan where
   pPrintPrec l r (All x) = maybeParens (r > appPrec) $ text "All" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
   pPrintPrec l r (Nab x) = maybeParens (r > appPrec) $ text "Nab" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
+-}
 instance Pretty Tm where
   pPrintPrec l r (Var x) = maybeParens (r > appPrec) $ text "Var" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
@@ -46,8 +48,8 @@ instance Pretty Act where
 instance Pretty ActB where
   pPrintPrec l r (UpB x) = maybeParens (r > appPrec) $ text "UpB" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (DnB x) = maybeParens (r > appPrec) $ text "DnB" <+> ppp x
-    where ppp = pPrintPrec l (appPrec+1)
+--  pPrintPrec l r (DnB x) = maybeParens (r > appPrec) $ text "DnB" <+> ppp x
+--    where ppp = pPrintPrec l (appPrec+1)
 instance (Alpha a, Pretty a) => Pretty (Bind Nm a) where
   pPrintPrec l r b = maybeParens (r > appPrec) $ ppp x <> text ".\\" <> ppp p
     where ppp = pPrintPrec l (appPrec+1); (x,p) = runFreshM $ unbind b
@@ -74,6 +76,10 @@ instance Pretty Pr where
   pPrintPrec l r (Match x y p) = maybeParens (r > appPrec) $
             text "Match" <+> ppp x <+> ppp y <+> ppp p
     where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Diff x y p) = maybeParens (r > appPrec) $
+            text "Diff" <+> ppp x <+> ppp y <+> ppp p
+    where ppp = pPrintPrec l (appPrec+1)
+{-
 instance Pretty Form where
   pPrintPrec _ _ FF = text "FF"
   pPrintPrec _ _ TT = text "TT"
@@ -101,6 +107,8 @@ instance Pretty Form where
   pPrintPrec l r (DiaMatch sigma f) = maybeParens (r > appPrec) $
             text "DiaMatch" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
+-}
+{-
 instance Pretty StepLog where
   pPrintPrec l r (One  nctx sigma a p) = maybeParens (r > appPrec) $
             text "One" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp p
@@ -108,7 +116,7 @@ instance Pretty StepLog where
   pPrintPrec l r (OneB nctx sigma a b) = maybeParens (r > appPrec) $
             text "OneB" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp b
     where ppp = pPrintPrec l (appPrec+1)
-
+-}
 
 x, y, z :: Nm
 w = s2n "w"
@@ -118,11 +126,13 @@ z = s2n "z"
 
 q1 = taup q2
 q2 = (x.= y)(taup o)
+q3 = (x./= y)(taup o)
 
 p1 = tau .+ taup tau
 p2 = inp x(z.\out x z o) .| out x y o
 p3 = inp x(z.\out x z o) .| out y x o
 
+{-
 axay = reverse [All x, All y]
 axny = reverse [All x, Nab y]
 nxay = reverse [Nab x, All y]

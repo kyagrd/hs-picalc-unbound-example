@@ -50,7 +50,6 @@ one ns (Nu b)  = do  (x,p) <- unbind b
                                                      | x == y   -> empty
                                 _                    -> return (l, Nu (x.\p'))
 one _ _       = empty
--- TODO mismatch
 
 oneb :: (Fresh m, Alternative m) => NmSet -> Pr -> m (ActB, PrB)
 oneb ns (Match x y p) | x == y = oneb ns p
@@ -74,11 +73,12 @@ oneb' ns p = do (l,b) <- oneb ns p; r <- unbind b; return (l,r)
 
 
 
-
+{- -- below is not a valid qusi-open bisimulation definition  just an exercise
 
 freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
 freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
 
+sim ns p q = and $ sim2_ ns p q
 
 sim2_ :: NmSet -> Pr -> Pr -> [Bool]
 sim2_ ns p q =
@@ -99,6 +99,7 @@ sim2_ ns p q =
              return . (and :: [Bool] -> Bool) $ sim2_ ns' p' q'
 
 
+bisim ns p q = and $ bisim2_ ns p q
 
 bisim2_ :: NmSet -> Pr -> Pr -> [Bool]
 bisim2_ ns p q =
@@ -132,3 +133,4 @@ bisim2_ ns p q =
                            | otherwise  = subst x (Var x') (p1, q1)
              let ns' = Set.insert x' ns
              return . (and :: [Bool] -> Bool) $ bisim2_ ns' p' q'
+-}

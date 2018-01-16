@@ -45,7 +45,7 @@ instance Subst Tm Pr;  instance Subst Tm Form
 infixr 1 .\
 (.\) = bind
 
-x ./= y = Match (Var x) (Var y)
+x ./= y = Diff (Var x) (Var y)
 x .= y = Match (Var x) (Var y)
 inp = In . Var
 out x y = Out(Var x)(Var y)
