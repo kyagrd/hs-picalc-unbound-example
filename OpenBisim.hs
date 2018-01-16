@@ -15,7 +15,7 @@ import           PiCalc
 import           Unbound.LocallyNameless hiding (empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
 
-
+{-
 
 data StepLog  =  One   Ctx EqC Act   Pr
               |  OneB  Ctx EqC ActB  PrB  deriving (Eq,Ord,Show)
@@ -238,3 +238,4 @@ subsMatchingActB :: ActB -> [StepLog] -> [EqC]
 subsMatchingActB a logs =
   do  OneB nctx sigma a' _ <-logs         ;  let sigmaSubs = subs nctx sigma
       guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
+-}

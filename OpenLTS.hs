@@ -7,6 +7,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OpenLTS where
+{-
 import           Control.Applicative
 import           Control.Monad
 import           Data.Map.Strict         (Map (..), fromList, insert, (!))
@@ -125,6 +126,7 @@ part2eqc ctx@(nctx,maxVal,n2iMap) sigma =
 
 one_ :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> m (EqC',(Act,Pr))
 one_ ctx _  (Out x y p)   = return (P.empty, (Up x y, p))
+one_ ctx ns (In x p)      = return (P.empty, (Dn x y, p))
 one_ ctx _  (TauP p)      = return (P.empty, (Tau, p))
 one_ ctx ns (Match (Var x) (Var y) p)  | x == y                   = one_ ctx ns p
                                        | [(x,y)] `respects'` ctx =
@@ -167,7 +169,6 @@ one_ _   _  _      = empty
 
 
 one_b :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> m (EqC',(ActB, PrB))
-one_b ctx _  (In x p) = return (P.empty, (DnB x, p))
 one_b ctx ns (Match (Var x) (Var y) p)  | x == y                   = one_b ctx ns p
                                         | [(x,y)] `respects'` ctx  =
                                               do  (sigma, r) <- one_b ctx ns p
@@ -191,3 +192,4 @@ one_b ctx ns (Nu b) =
 one_b _   _  _ = empty
 
 one_b' ctx ns p = do (sigma,(l,b)) <- one_b ctx ns p; r <- unbind b; return (sigma,(l,r))
+-}

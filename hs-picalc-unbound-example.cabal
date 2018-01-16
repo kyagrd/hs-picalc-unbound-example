@@ -28,11 +28,12 @@ cabal-version:       >=1.10
 executable hs-picalc-unbound-example-exe
   hs-source-dirs:
   main-is:             Main.hs
-  other-modules:       PiCalc IdSubLTS OpenLTS OpenBisim SubstLatt
+  other-modules:       PiCalc IdSubLTS OpenLTS OpenBisim SubstLatt MemoUgly
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base >= 4.7 && < 5
 --                     , hs-picalc-unbound-example
                      , containers
+                     , monadplus
                      , fgl
                      , graphviz
                      , data-partition

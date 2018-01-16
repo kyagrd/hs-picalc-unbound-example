@@ -23,7 +23,7 @@ instance Eq PrB where (==) = aeqBinders
 instance Ord PrB where compare = acompare
 
 data Act   = Up Tm Tm | Dn Tm Tm | Tau     deriving (Eq, Ord, Show)
-data ActB  = UpB Tm   | DnB Tm  deriving (Eq, Ord, Show)
+data ActB  = UpB Tm   {- | DnB Tm -}  deriving (Eq, Ord, Show)
 
 data Form  = FF | TT | Conj [Form] | Disj [Form]
            | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form
