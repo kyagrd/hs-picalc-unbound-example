@@ -18,7 +18,7 @@ type NmSet = Set.Set Nm
 one :: (Fresh m, Alternative m) => NmSet -> Pr -> m (Act, Pr)
 one _  (Out x y p)    = return (Up x y, p)
 one ns (In x b)       = do (z,p) <- unbind b
-                           foldr1 (<|>) [ return (Dn x (Var y), subst z (Var y) p)
+                           asum [ return (Dn x (Var y), subst z (Var y) p)
                                         | y <- Set.toList(Set.insert z ns) ]
 one _  (TauP p)       = return (Tau, p)
 one ns (Match x y p)  | x == y = one ns p
