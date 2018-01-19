@@ -7,7 +7,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 
 module OpenLTS where
-{-
+
 import           Control.Applicative
 import           Control.Monad
 import           Data.Map.Strict         (Map (..), fromList, insert, (!))
@@ -126,7 +126,7 @@ part2eqc ctx@(nctx,maxVal,n2iMap) sigma =
 
 one_ :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> m (EqC',(Act,Pr))
 one_ ctx _  (Out x y p)   = return (P.empty, (Up x y, p))
-one_ ctx ns (In x p)      = return (P.empty, (Dn x y, p))
+one_ ctx ns (In x b)      = do (y,p) <- unbind b; return (P.empty, (Dn x (Var y), p))
 one_ ctx _  (TauP p)      = return (P.empty, (Tau, p))
 one_ ctx ns (Match (Var x) (Var y) p)  | x == y                   = one_ ctx ns p
                                        | [(x,y)] `respects'` ctx =
@@ -138,6 +138,27 @@ one_ ctx ns (Plus p q) = one_ ctx ns p <|> one_ ctx ns q
 one_ ctx ns (Par p q)
   =    do  (sigma,(l,p')) <- one_ ctx ns p;  return (sigma,(l,Par p' q))
   <|>  do  (sigma,(l,q')) <- one_ ctx ns q;  return (sigma,(l,Par p q'))
+
+{- TODO close TODO close TODO close TODO close
+  <|>  do  (UpB x, bp) <- oneb ns p;  (y, p') <- unbind bp
+           (Dn x' (Var z), q') <- one ns q
+           guard $ x == x' && not(Set.member z ns)
+           return (Tau, Nu(y.\Par p' (subst z (Var y) q'))) -- close
+  <|>  do  (UpB x, bq) <- oneb ns q;  (y, q') <- unbind bq
+           (Dn x' (Var z), p') <- one ns p
+           guard $ x == x' && not(Set.member z ns)
+           return (Tau, Nu(y.\Par (subst z (Var y) p') q')) -- close
+
+
+
+  <|>  do  (sigma_p,(UpB(Var x),        bp)) <- one_b ctx ns p;  (z,p')<- unbind bp
+           (sigma_q, bq)) <- oneIn_ ctx ns q
+           guard $ x == x' && not(Set.member y ns)
+           let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
+                                              guard $ sigma' `respects_` ctx
+                                              return (sigma', (Tau, Nu(y.\Par p' q')))
+
+
   <|>  do  (sigma_p,(lp,bp)) <- one_b ctx ns p;  (sigma_q,(lq,bq)) <- one_b ctx ns q
            case (lp, lq) of             -- close
              (DnB(Var x),UpB(Var x'))  -> do  (y, q', p') <-  unbind2' bq bp
@@ -149,13 +170,14 @@ one_ ctx ns (Par p q)
                                               guard $ sigma' `respects_` ctx
                                               return (sigma', (Tau, Nu(y.\Par p' q')))
              _                         -> empty
-  <|>  do  (sigma_p, (Up (Var x) v, p')) <- one_  ctx ns p
-           (sigma_q, (DnB (Var x'), bq)) <- one_b ctx ns q;  (y, q') <- unbind bq
+-}
+  <|>  do  (sigma_p, (Up (Var x) v,        p')) <- one_ ctx ns p
+           (sigma_q, (Dn (Var x') (Var y), q')) <- one_ ctx ns q
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
            guard $ sigma' `respects_` ctx
            return (sigma', (Tau, Par p' (subst y v q'))) -- interaction
-  <|>  do  (sigma_p, (DnB (Var x'), (y, p')))   <- one_b'  ctx ns p
-           (sigma_q, (Up (Var x) v,     q'))    <- one_    ctx ns q
+  <|>  do  (sigma_p, (Dn (Var x') (Var y), p')) <- one_ ctx ns p
+           (sigma_q, (Up (Var x) v,        q')) <- one_ ctx ns q
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
            guard $ sigma' `respects_` ctx
            return (sigma', (Tau, Par (subst y v p') q'))
@@ -183,7 +205,6 @@ one_b ctx ns (Nu b) =
        do  (x,p) <- unbind b;                       let ctx' = extend (Nab x) ctx
            (sigma,(l,(y,p'))) <- one_b' ctx' ns p;  let sigmaSubs = subs_ ctx' sigma
            case l of  UpB (Var x') | x == sigmaSubs x' -> empty
-                      DnB (Var x') | x == sigmaSubs x' -> empty
                       _            -> return (sigma, (l, y.\Nu (x.\p')))
   <|>  do  (x,p) <- unbind b;                             let ctx' = extend (Nab x) ctx
            (sigma,(Up y (Var x'),p')) <- one_ ctx' ns p;  let sigmaSubs = subs_ ctx' sigma
@@ -192,4 +213,3 @@ one_b ctx ns (Nu b) =
 one_b _   _  _ = empty
 
 one_b' ctx ns p = do (sigma,(l,b)) <- one_b ctx ns p; r <- unbind b; return (sigma,(l,r))
--}

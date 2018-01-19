@@ -17,9 +17,10 @@ type NmSet = Set.Set Nm
 
 one :: (Fresh m, Alternative m) => NmSet -> Pr -> m (Act, Pr)
 one _  (Out x y p)    = return (Up x y, p)
-one ns (In x b)       = do (z,p) <- unbind b
-                           asum [ return (Dn x (Var y), subst z (Var y) p)
-                                        | y <- Set.toList(Set.insert z ns) ]
+one ns (In x b)       = do { (z,p) <- unbind b; return (Dn x (Var z), p) }
+                        -- above only return fresh var input val
+                           -- asum [ return (Dn x (Var y), subst z (Var y) p)
+                           --      | y <- Set.toList(Set.insert z ns) ]
 one _  (TauP p)       = return (Tau, p)
 one ns (Match x y p)  | x == y = one ns p
 one ns (Diff (Var x) (Var y) p)
@@ -28,21 +29,17 @@ one ns (Plus p q) = one ns p <|> one ns q
 one ns (Par p q)
   =    do  (l, p') <- one ns p;  return (l, Par p' q)
   <|>  do  (l, q') <- one ns q;  return (l, Par p q')
-  <|>  do  (UpB x, bp) <- oneb ns p
-           (y, p') <- unbind bp
+  <|>  do  (UpB x, bp) <- oneb ns p;  (y, p') <- unbind bp
            (Dn x' (Var z), q') <- one ns q
            guard $ x == x' && not(Set.member z ns)
            return (Tau, Nu(y.\Par p' (subst z (Var y) q'))) -- close
-  <|>  do  (UpB x, bq) <- oneb ns q
-           (y, q') <- unbind bq
+  <|>  do  (UpB x, bq) <- oneb ns q;  (y, q') <- unbind bq
            (Dn x' (Var z), p') <- one ns p
            guard $ x == x' && not(Set.member z ns)
            return (Tau, Nu(y.\Par (subst z (Var y) p') q')) -- close
-  <|>  do  (Up x y, p') <- one ns p;  (Dn x' y', q') <- one ns q
-           guard $ x == x' && y == y'
+  <|>  do  (Up x y, p') <- one ns p;  q' <- oneIn ns q (Dn x y)
            return (Tau, Par p' q')  -- interaction
-  <|>  do  (Dn x' y', p') <- one ns p;  (Up x y, q') <- one ns q
-           guard $ x == x' && y == y'
+  <|>  do  (Up x y, q') <- one ns q;  p' <- oneIn ns p (Dn x y)
            return (Tau, Par p' q')  -- interaction
 one ns (Nu b)  = do  (x,p) <- unbind b
                      (l,p') <- one (Set.insert x ns) p
@@ -71,6 +68,23 @@ oneb _ _           = empty
 oneb' ns p = do (l,b) <- oneb ns p; r <- unbind b; return (l,r)
 
 
+-- specialization of one with a specific input label
+oneIn :: (Fresh m, Alternative m) => NmSet -> Pr -> Act -> m Pr
+oneIn ns (In x b) (Dn x' y)
+  | x == x' = do { (z,p) <- unbind b; return $ subst z y p }
+oneIn ns (Match x y p) l@(Dn _ _)  | x == y = oneIn ns p l
+oneIn ns (Diff (Var x) (Var y) p) l@(Dn _ _)
+  | (Set.member x ns || Set.member y ns) && x /= y   = oneIn ns p l
+oneIn ns (Plus p q) l@(Dn _ _) = oneIn ns p l <|> oneIn ns q l
+oneIn ns (Par p q) l@(Dn _ _) =  (Par <$> oneIn ns p l <*> pure q)
+                            <|>  (Par <$> pure p <*> oneIn ns q l)
+oneIn ns (Nu b) l@(Dn _ _) = do  (x,p) <- unbind b
+                                 p' <- oneIn (Set.insert x ns) p l
+                                 case l of  Up (Var x') (Var y)
+                                               | x == x'  -> empty
+                                               | x == y   -> empty
+                                            _ -> return $ Nu (x.\p')
+oneIn _  _ _ = empty
 
 
 {- -- below is not a valid qusi-open bisimulation definition  just an exercise
