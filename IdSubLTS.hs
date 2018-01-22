@@ -29,14 +29,12 @@ one ns (Plus p q) = one ns p <|> one ns q
 one ns (Par p q)
   =    do  (l, p') <- one ns p;  return (l, Par p' q)
   <|>  do  (l, q') <- one ns q;  return (l, Par p q')
-  <|>  do  (UpB x, bp) <- oneb ns p;  (y, p') <- unbind bp
-           (Dn x' (Var z), q') <- one ns q
-           guard $ x == x' && not(Set.member z ns)
-           return (Tau, Nu(y.\Par p' (subst z (Var y) q'))) -- close
-  <|>  do  (UpB x, bq) <- oneb ns q;  (y, q') <- unbind bq
-           (Dn x' (Var z), p') <- one ns p
-           guard $ x == x' && not(Set.member z ns)
-           return (Tau, Nu(y.\Par (subst z (Var y) p') q')) -- close
+  <|>  do  (UpB x, bp) <- oneb ns p;  (z, p') <- unbind bp
+           q' <- oneIn ns q (Dn x (Var z))
+           return (Tau, Nu(z.\Par p' q')) -- close
+  <|>  do  (UpB x, bq) <- oneb ns q;  (z, q') <- unbind bq
+           p' <- oneIn ns p (Dn x (Var z))
+           return (Tau, Nu(z.\Par p' q')) -- close
   <|>  do  (Up x y, p') <- one ns p;  q' <- oneIn ns q (Dn x y)
            return (Tau, Par p' q')  -- interaction
   <|>  do  (Up x y, q') <- one ns q;  p' <- oneIn ns p (Dn x y)
