@@ -132,6 +132,31 @@ p1 = tau .+ taup tau
 p2 = inp x(z.\out x z o) .| out x y o
 p3 = inp x(z.\out x z o) .| out y x o
 
+a = s2n "a" :: Nm
+k = s2n "k" :: Nm
+pp1 = nu$k.\ out a k ((inp a$x.\o).+(inp a$x.\tau))
+pp2 = nu$k.\ out a k ((inp a$x.\o).+(inp a$x.\tau).+(inp a$x.\(x.=k)tau))
+
+
+pp1' = nu$k.\ {- out a k -} ((inp a$x.\o).+(inp a$x.\tau))
+pp2' = nu$k.\ {- out a k -} ((inp a$x.\o).+(inp a$x.\tau).+(inp a$x.\(x.=k)tau))
+
+qq1 = nu$k.\ {- out a k -} o
+qq2 = nu$k.\ {- out a k -} ((a.=k)tau)
+
+
+qqq1 = nu$k.\ out a k o
+qqq2 = nu$k.\ out a k ((a.=k)tau)
+
+
+qqqq1 = nu$k.\ out a k (inp a$x.\ tau)
+qqqq2 = nu$k.\ out a k (inp a$x.\ (a.=k)tau)
+
+
+qqqq1' = nu$k.\ out a k (inp a$x.\ tau)
+qqqq2' = nu$k.\ out a k (inp a$x.\ (x.=k)tau)
+
+
 {-
 axay = reverse [All x, All y]
 axny = reverse [All x, Nab y]
