@@ -68,18 +68,19 @@ toCtx' nctx = (nctx, maxVal, n2iMap)
 extend :: Quan -> Ctx' -> Ctx'
 extend q (nctx, n, n2iMap) = (q:nctx, n+1, insert (quan2nm q) (n+1) n2iMap)
 
-respects :: EqC -> Ctx -> Bool
-respects sigma nctx = all (\n -> P.rep part n == n) [n2i x | Nab x <- nctx]
-  where (part, (n2i, _)) = mkPartitionFromEqC nctx sigma
+respects :: EqC -> Ctx -> NmSet -> Bool
+respects sigma nctx ns =
+  all (\n -> P.rep part n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  where (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
 
-respects' :: EqC -> Ctx' -> Bool
-respects' sigma ctx@(nctx,_,n2iMap) =
-  all (\n -> P.rep part n == n) [n2i x | Nab x <- nctx]
+respects' :: EqC -> Ctx' -> NmSet -> Bool
+respects' sigma ctx@(nctx,_,n2iMap) ns =
+  all (\n -> P.rep part n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
   where (part,(n2i,i2n)) = mkPartitionFromEqC' ctx sigma
 
-respects_ :: EqC' -> Ctx' -> Bool
-respects_ sigma ctx@(nctx,_,n2iMap) =
-  all (\n -> P.rep sigma n == n) [n2i x | Nab x <- nctx]
+respects_ :: EqC' -> Ctx' -> NmSet -> Bool
+respects_ sigma ctx@(nctx,_,n2iMap) ns =
+  all (\n -> P.rep sigma n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
   where (n2i,i2n) = mkMapFunsFromEqC' ctx sigma
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
@@ -132,11 +133,10 @@ one_ ctx ns (In x b)      = do (y,p) <- unbind b; return (P.empty, (Dn x (Var y)
 one_ ctx _  (TauP p)      = return (P.empty, (Tau, p))
 one_ ctx ns pp@(Match (Var x) (Var y) p)
   | x == y                   = one_ ctx ns p
-  | [(x,y)] `respects'` ctx  = -- TODO ns and mismatch related
+  | respects' [(x,y)] ctx ns =
                            do  (sigma, r) <- one_ ctx ns p
-                               guard $ sigma `respects_` ctx -- TODO ns and mismatch related
                                let sigma' = joinNm ctx (x,y) sigma
-                               guard $ sigma' `respects_` ctx -- TODO ns and mismatch related
+                               guard $ respects_ sigma' ctx ns
                                return (sigma', r)
 {- TODO
 one ns (Diff (Var x) (Var y) p)
@@ -157,13 +157,13 @@ one_ ctx ns (Par p q)
   <|>  do  (sigma_p, (Up (Var x) v,        p')) <- one_ ctx ns p
            (sigma_q, (Dn (Var x') (Var y), q')) <- one_ ctx ns q
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
-           guard $ sigma' `respects_` ctx -- TODO ns and mismatch related
+           guard $ respects_ sigma' ctx ns
            return (sigma', (Tau, Par p' (subst y v q'))) -- interaction
   <|>  do  (sigma_p, (Dn (Var x') (Var y), p')) <- one_ ctx ns p
            (sigma_q, (Up (Var x) v,        q')) <- one_ ctx ns q
            let sigma' = joinNm ctx (x,x') (joinParts sigma_p sigma_q)
-           guard $ sigma' `respects_` ctx -- TODO ns and mismatch related
-           return (sigma', (Tau, Par (subst y v p') q'))
+           guard $ respects_ sigma' ctx ns
+           return (sigma', (Tau, Par (subst y v p') q')) -- interaction
 one_ ctx ns (Nu b) =
   do  (x,p) <- unbind b
       let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
@@ -180,9 +180,9 @@ one_ _   _  _      = empty
 one_b :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> m (EqC',(ActB, PrB))
 one_b ctx ns (Match (Var x) (Var y) p)
   | x == y                   = one_b ctx ns p
-  | [(x,y)] `respects'` ctx  = do  (sigma, r) <- one_b ctx ns p
+  | respects' [(x,y)] ctx ns = do  (sigma, r) <- one_b ctx ns p
                                    let sigma' = joinNm ctx (x,y) sigma
-                                   guard $ sigma' `respects_` ctx -- TODO ns and mismatch related
+                                   guard $ respects_ sigma' ctx ns
                                    return (sigma', r)
 {- TODO
 oneb ns (Diff (Var x) (Var y) p)
@@ -210,9 +210,9 @@ one_b' ctx ns p = do (sigma,(l,b)) <- one_b ctx ns p; r <- unbind b; return (sig
 -- specialization of one with a specific input label
 one_In :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> Act -> m (EqC',Pr)
 one_In ctx ns (In (Var x) b) (Dn (Var x') y)
-  | x == x' =  do { (z,p) <- unbind b; return (P.empty, subst z y p) }
-  | [(x,x')] `respects'` ctx = -- TODO ns and mismatch related
-               do { (z,p) <- unbind b; return (joinNm ctx (x, x') P.empty, subst z y p) }
+  | x == x'  = do (z,p) <- unbind b;  return (P.empty, subst z y p)
+  | respects' [(x,x')] ctx ns =
+      do (z,p) <- unbind b;  return (joinNm ctx (x, x') P.empty, subst z y p)
 one_In ctx ns (Match x y p) l@(Dn _ _)  | x == y = one_In ctx ns p l
 one_In ctx ns (Diff (Var x) (Var y) p) l@(Dn _ _)
   | (Set.member x ns || Set.member y ns) && x /= y   = one_In ctx ns p l
