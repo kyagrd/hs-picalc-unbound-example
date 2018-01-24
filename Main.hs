@@ -132,6 +132,9 @@ p1 = tau .+ taup tau
 p2 = inp x(z.\out x z o) .| out x y o
 p3 = inp x(z.\out x z o) .| out y x o
 
+-- TODO fix bug: qq2 ~ qq2  and similarly pp2' ~ pp2' is False
+-- interestingly qqq2 ~ qqq2 and pp2 ~ pp2 is True as they should be
+
 a = s2n "a" :: Nm
 k = s2n "k" :: Nm
 pp1 = nu$k.\ out a k ((inp a$x.\o).+(inp a$x.\tau))
