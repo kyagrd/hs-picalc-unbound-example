@@ -9,15 +9,17 @@
 module OpenLTS where
 
 import           Control.Applicative
+import           Control.Applicative.Alternative
 import           Control.Monad
-import           Data.Map.Strict         (Map (..), fromList, insert, (!))
-import           Data.Partition          hiding (empty, rep)
-import qualified Data.Partition          as P
-import qualified Data.Set                as Set
+import           Data.Map.Strict                 (Map (..), fromList, insert,
+                                                  (!))
+import           Data.Partition                  hiding (empty, rep)
+import qualified Data.Partition                  as P
+import qualified Data.Set                        as Set
 import           Debug.Trace
 import qualified IdSubLTS
 import           PiCalc
-import           Unbound.LocallyNameless hiding (GT, empty)
+import           Unbound.LocallyNameless         hiding (GT, empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -70,17 +72,17 @@ extend q (nctx, n, n2iMap) = (q:nctx, n+1, insert (quan2nm q) (n+1) n2iMap)
 
 respects :: EqC -> Ctx -> NmSet -> Bool
 respects sigma nctx ns =
-  all (\n -> P.rep part n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
   where (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
 
 respects' :: EqC -> Ctx' -> NmSet -> Bool
 respects' sigma ctx@(nctx,_,n2iMap) ns =
-  all (\n -> P.rep part n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
   where (part,(n2i,i2n)) = mkPartitionFromEqC' ctx sigma
 
 respects_ :: EqC' -> Ctx' -> NmSet -> Bool
 respects_ sigma ctx@(nctx,_,n2iMap) ns =
-  all (\n -> P.rep sigma n == n || Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  all (\n -> P.rep sigma n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
   where (n2i,i2n) = mkMapFunsFromEqC' ctx sigma
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
@@ -129,7 +131,11 @@ part2eqc ctx@(nctx,maxVal,n2iMap) sigma =
 
 one_ :: (Fresh m, Alternative m) => Ctx' -> NmSet -> Pr -> m (EqC',(Act,Pr))
 one_ ctx _  (Out x y p)   = return (P.empty, (Up x y, p))
-one_ ctx ns (In x b)      = do (y,p) <- unbind b; return (P.empty, (Dn x (Var y), p))
+one_ ctx ns (In x b)      =
+  do  (z,p) <- unbind b
+      -- return (P.empty, (Dn x (Var z), p))
+      asum [ return (P.empty, (Dn x (Var y), subst z (Var y) p))
+            | y <- Set.toList(Set.insert z ns) ]
 one_ ctx _  (TauP p)      = return (P.empty, (Tau, p))
 one_ ctx ns pp@(Match (Var x) (Var y) p)
   | x == y                   = one_ ctx ns p
@@ -173,7 +179,9 @@ one_ ctx ns (Nu b) =
                                       | x == sigmaSubs y   -> empty
                  Dn (Var x') (Var y)  | x == sigmaSubs x'  -> empty
                                       | x == sigmaSubs y   -> empty
-                 _                    -> return (sigma, (l, Nu(x.\p')))
+                 _                    -> return {- $
+                                             trace (show ((ctx, ns), (ctx',ns'), (sigma, (l, Nu(x.\p'))))) -}
+                                               (sigma, (l, Nu(x.\p')))
 one_ _   _  _      = empty
 
 
@@ -248,12 +256,13 @@ sim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ sim2_ ctx ns p' q'
   <|>  do  (sigma, r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           let ctx' = extend (All y) ctx
+           let (ctx',ns')
+                 | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
+                 | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
            let sigmaSubs = subs_ ctx' sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
-             (lq, q') <-IdSubLTS.one ns (sigmaSubs q)
-             guard $ lp == lq
+             q' <-IdSubLTS.oneIn ns (sigmaSubs q) lp
              return . (and :: [Bool] -> Bool) $ sim2_ ctx' ns p' q'
   <|>  do  (sigma, r) <- runFreshMT (one_b ctx ns p); let sigmaSubs = subs_ ctx sigma
            let (lp, bp') = sigmaSubs r
@@ -279,13 +288,14 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx ns p' q'
   <|>  do  (sigma, r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           let ctx' = extend (All y) ctx
+           let (ctx',ns')
+                 | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
+                 | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
            let sigmaSubs = subs_ ctx' sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
-             (lq, q') <-IdSubLTS.one ns (sigmaSubs q)
-             guard $ lp == lq
-             return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns p' q'
+             q' <-IdSubLTS.oneIn ns (sigmaSubs q) lp
+             return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns' p' q'
   <|>  do  (sigma, r) <- runFreshMT (one_b ctx ns p); let sigmaSubs = subs_ ctx sigma
            let (lp, bp') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -304,12 +314,13 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx ns p' q'
   <|>  do  (sigma, r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns q)
-           let ctx' = extend (All y) ctx
+           let (ctx',ns')
+                 | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
+                 | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
            let sigmaSubs = subs_ ctx' sigma
            let (lq, q') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
-             (lp, p') <-IdSubLTS.one ns (sigmaSubs p)
-             guard $ lp == lq
+             p' <-IdSubLTS.oneIn ns (sigmaSubs p) lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns p' q'
   <|>  do  (sigma, r) <- runFreshMT (one_b ctx ns q); let sigmaSubs = subs_ ctx sigma
            let (lq, bq') = sigmaSubs r

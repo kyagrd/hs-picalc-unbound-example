@@ -132,8 +132,8 @@ p1 = tau .+ taup tau
 p2 = inp x(z.\out x z o) .| out x y o
 p3 = inp x(z.\out x z o) .| out y x o
 
--- TODO fix bug: qq2 ~ qq2  and similarly pp2' ~ pp2' is False
--- interestingly qqq2 ~ qqq2 and pp2 ~ pp2 is True as they should be
+-- TODO fix bug:
+-- pp1 ~ pp2  should be True
 
 a = s2n "a" :: Nm
 k = s2n "k" :: Nm
@@ -152,12 +152,14 @@ qqq1 = nu$k.\ out a k o
 qqq2 = nu$k.\ out a k ((a.=k)tau)
 
 
+qqqq0 = nu$k.\ out a k (inp a$x.\ o)
 qqqq1 = nu$k.\ out a k (inp a$x.\ tau)
-qqqq2 = nu$k.\ out a k (inp a$x.\ (a.=k)tau)
+qqqq2 = nu$k.\ out a k (inp a$x.\ (x.=k)tau)
 
 
-qqqq1' = nu$k.\ out a k (inp a$x.\ tau)
-qqqq2' = nu$k.\ out a k (inp a$x.\ (x.=k)tau)
+qqqq0' = nu$k.\ {- out a k -} (inp a$x.\ o)
+qqqq1' = nu$k.\ {- out a k -} (inp a$x.\ tau)
+qqqq2' = nu$k.\ {- out a k -} (inp a$x.\ (x.=k)tau)
 
 
 {-
@@ -229,7 +231,7 @@ main = do
   putStrLn "================================================================"
   putStrLn . showForest $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
   mapM_ pp . forest2df $ bisim' axay (tau .+ taup tau) (taup $ (x.= y) tau)
-  putStrLn "================================================================"
+  putStrLn "========================================u========================"
   putStrLn . showForest $ bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
   mapM_ pp . forest2df $ bisim' [All x] (inp x$z.\tau .+ tau) (inp x$z.\tau .+ out z x o)
   putStrLn "================================================================"
