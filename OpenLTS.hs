@@ -147,7 +147,9 @@ one_ ctx ns pp@(Match (Var x) (Var y) p)
 one_ ctx ns (Diff (Var x) (Var y) p)
   | x == y   = empty
   | Set.member x ns || Set.member y ns  = one_ ctx ns p
-  | otherwise = error "TODO"-- TODO
+  | otherwise =  do  ((sigma,delta), r) <- one_ ctx ns p
+                     -- TODO respects for delta?
+                     return ((sigma,(x,y):delta), r)
 one_ ctx ns (Plus p q) = one_ ctx ns p <|> one_ ctx ns q
 one_ ctx ns (Par p q)
   =    do  (sd,(l,p')) <- one_ ctx ns p;  return (sd,(l,Par p' q))
@@ -195,7 +197,9 @@ one_b ctx ns (Match (Var x) (Var y) p)
 one_b ctx ns (Diff (Var x) (Var y) p)
   | x == y  = empty
   | Set.member x ns || Set.member y ns  = one_b ctx ns p
-  | otherwise  = error "TODO" -- TODO
+  | otherwise =  do  ((sigma,delta), r) <- one_b ctx ns p
+                     -- TODO respects for delta?
+                     return ((sigma,(x,y):delta), r)
 one_b ctx ns (Plus p q) = one_b ctx ns p <|> one_b ctx ns q
 one_b ctx ns (Par p q) =
        do (sd,(l,(x,p'))) <- one_b' ctx ns p;  return (sd,(l, x.\Par p' q))
@@ -225,7 +229,9 @@ one_In ctx ns (Match x y p) l@(Dn _ _)  | x == y = one_In ctx ns p l
 one_In ctx ns (Diff (Var x) (Var y) p) l@(Dn _ _)
   | x == y  = empty
   | Set.member x ns || Set.member y ns  = one_In ctx ns p l
-  | otherwise  = error "TODO" -- TODO
+  | otherwise =  do  ((sigma,delta), r) <- one_In ctx ns p l
+                     -- TODO respects for delta?
+                     return ((sigma,(x,y):delta), r)
 one_In ctx ns (Plus p q) l@(Dn _ _) = one_In ctx ns p l <|> one_In ctx ns q l
 one_In ctx ns (Par p q) l@(Dn _ _) =
        do (sd, p') <- one_In ctx ns p l;  return (sd, Par p' q)
