@@ -31,13 +31,13 @@ appPrec = 10
 pp = print . pPrint
 
 instance Pretty Nm where pPrint = text . show
-{-
+
 instance Pretty Quan where
   pPrintPrec l r (All x) = maybeParens (r > appPrec) $ text "All" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
   pPrintPrec l r (Nab x) = maybeParens (r > appPrec) $ text "Nab" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
--}
+
 instance Pretty Tm where
   pPrintPrec l r (Var x) = maybeParens (r > appPrec) $ text "Var" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
@@ -108,15 +108,15 @@ instance Pretty Form where
             text "DiaMatch" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
 -}
-{-
+
 instance Pretty StepLog where
-  pPrintPrec l r (One  nctx sigma a p) = maybeParens (r > appPrec) $
-            text "One" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp p
+  pPrintPrec l r (One  nctx ns sigma a p) = maybeParens (r > appPrec) $
+            text "One" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma <+> ppp a <+> ppp p
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (OneB nctx sigma a b) = maybeParens (r > appPrec) $
-            text "OneB" <+> ppp nctx <+> ppp sigma <+> ppp a <+> ppp b
+  pPrintPrec l r (OneB nctx ns sigma a b) = maybeParens (r > appPrec) $
+            text "OneB" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma <+> ppp a <+> ppp b
     where ppp = pPrintPrec l (appPrec+1)
--}
+
 
 x, y, z :: Nm
 w = s2n "w"
@@ -137,6 +137,9 @@ p3 = inp x(z.\out x z o) .| out y x o
 {-
 > OpenBisim.bisim2 (toCtx' [All a]) Set.empty (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
 True
+
+
+> OpenBisim.bisim2 (toCtx' [All a]) Set.empty (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
 -}
 
 a = s2n "a" :: Nm
@@ -159,11 +162,21 @@ qqq2 = nu$k.\ out a k ((a.=k)tau)
 qqqq0 = nu$k.\ out a k (inp a$x.\ o)
 qqqq1 = nu$k.\ out a k (inp a$x.\ tau)
 qqqq2 = nu$k.\ out a k (inp a$x.\ (x.=k)tau)
+qqqq3 = nu$k.\ out a k (inp a$x.\ (x./=k)tau)
+qqqq4 = nu$k.\ out a k (inp a$x.\ (x.=k)tau .+ (x./=k)tau)
 
 
 qqqq0' = nu$k.\ {- out a k -} (inp a$x.\ o)
 qqqq1' = nu$k.\ {- out a k -} (inp a$x.\ tau)
 qqqq2' = nu$k.\ {- out a k -} (inp a$x.\ (x.=k)tau)
+qqqq3' = nu$k.\ {- out a k -} (inp a$x.\ (x./=k)tau)
+qqqq4' = nu$k.\ {- out a k -} (inp a$x.\ (x.=k)tau .+ (x./=k)tau)
+
+rrr1 = (x./=y) $ taup $ ((x.=z)tau.+(x./=z)tau) .+ ((y.=z)tau.+(y./=z)tau)
+rrr2 = (x./=y) $ taup $ tau
+
+rr1 = (x./=y) tau
+rr2 = o
 
 
 {-
@@ -266,7 +279,7 @@ main = do
   print $ bisim [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
   putStrLn . showForest $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
   mapM_ pp . forest2df $ bisim' [All a] (Nu$b.\out a b (inp a $x.\(x.= b) (out x x o))) (Nu$b.\out a b (inp a $x.\out x x o))
-
+-}
 showForest = drawForest . map toTreeString
 showTree = drawTree . toTreeString
 
@@ -276,7 +289,7 @@ toTreeString = foldTree (\log ts -> Node (render1line . pPrint $ log) ts)
 
 foldTree :: (a -> [b] -> b) -> Tree a -> b
 foldTree f = go where go (Node x ts) = f x (map go ts)
-
+{-
 axayaaab = map All [x,y,a,b]
 a = s2n "a"
 b = s2n "b"
