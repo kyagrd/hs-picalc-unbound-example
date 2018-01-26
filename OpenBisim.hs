@@ -39,9 +39,7 @@ deltaExplode_ ((x,y):delta) (nctx, ns)
   | otherwise = pure (toNab x nctx, Set.insert x ns)
             <|> pure (toNab y nctx, Set.insert y ns)
   where
-    toNab x (All x' : nctx) | x == x'   = Nab x : nctx
-    toNab x (quan   : nctx) = quan : toNab x nctx
-
+    toNab x nctx = Nab x : filter ((x/=) . quan2nm) nctx
 
 sim2 ctx ns p q = and $ sim2_ ctx ns p q
 

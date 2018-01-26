@@ -132,8 +132,12 @@ p1 = tau .+ taup tau
 p2 = inp x(z.\out x z o) .| out x y o
 p3 = inp x(z.\out x z o) .| out y x o
 
--- TODO fix bug:
--- pp1 ~ pp2  should be True
+-- good that end of p3 example works
+-- TODO confirm this:
+{-
+> OpenBisim.bisim2 (toCtx' [All a]) Set.empty (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
+True
+-}
 
 a = s2n "a" :: Nm
 k = s2n "k" :: Nm
