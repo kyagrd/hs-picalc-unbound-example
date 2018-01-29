@@ -6,15 +6,16 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module OpenBisim where
 import           Control.Applicative
+import           Control.Applicative.Alternative
 import           Control.Monad
-import qualified Data.Set                as Set
+import qualified Data.Set                        as Set
 import           Data.Tree
 import           Debug.Trace
 import qualified IdSubLTS
 import           MemoUgly
-import           OpenLTS                 hiding (one, oneb)
+import           OpenLTS                         hiding (one, oneb)
 import           PiCalc
-import           Unbound.LocallyNameless hiding (empty)
+import           Unbound.LocallyNameless         hiding (empty)
 {-# ANN module "HLint: ignore Use mappend" #-}
 
 data StepLog  =  One   Ctx NmSet EqC Act   Pr
@@ -27,27 +28,30 @@ returnR log = return . Node (Right log)  -- for the step on |q|'s side
 freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
 freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
 
-deltaExplode delta (ctx@(nctx,_,_), ns) =
-  do (nctx', ns') <- deltaExplode_ delta (nctx, ns)
-     return (toCtx' nctx, ns')
+deltaExplode delta (ctx@(nctx,_,_), sigma, ns) =
+  do (nctx', sigma', ns') <- deltaExplode_ delta (nctx, part2eqc ctx sigma, ns)
+     return (toCtx' nctx', fst $ mkPartitionFromEqC nctx' sigma', ns')
 
-deltaExplode_ []            (nctx, ns)    = pure (nctx, ns)
-deltaExplode_ ((x,y):delta) (nctx, ns)
+deltaExplode_ []            (nctx, cs, ns)    = pure (nctx, cs, ns)
+deltaExplode_ ((x,y):delta) (nctx, cs, ns)
   | x == y    = error $ show (x,y) ++ " in delta"
-  | Set.member x ns || Set.member y ns  = pure (nctx, ns)
-  | otherwise = pure (diffCtx (x,y) nctx, Set.insert x ns)
-            <|> pure (diffCtx (y,x) nctx, Set.insert y ns)
+  | Set.member x ns || Set.member y ns  = deltaExplode_ delta (nctx, cs, ns)
+  | otherwise =
+        deltaExplode_ delta (diffCtx (x,y) nctx, cs, Set.insert x ns)
+    <|> asum [deltaExplode_ delta (nctx, (x,n):cs, ns) | n <- Set.toList ns]
+    <|> deltaExplode_ delta (diffCtx (y,x) nctx, cs, Set.insert y ns)
+    <|> asum [deltaExplode_ delta (nctx, (y,n):cs, ns) | n <- Set.toList ns]
   where
     -- toNab x nctx = Nab x : filter ((x/=) . quan2nm) nctx
     diffCtx (x,y) nctx = trace (show $ nctx1 ++ Nab x : nctx2 ) $ nctx1 ++ Nab x : nctx2
-       where (nctx1, All _ : nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
+       where (nctx1, nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
 
 sim2 ctx ns p q = and $ sim2_ ctx ns p q
 
 sim2_ :: Ctx' -> NmSet -> Pr -> Pr -> [Bool]
 sim2_ ctx@(nctx,_,_) ns p q  =
        do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns p)
-           (ctx, ns) <- deltaExplode delta (ctx, ns)
+           (ctx, sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
@@ -55,7 +59,7 @@ sim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ sim2_ ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx',ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -65,7 +69,7 @@ sim2_ ctx@(nctx,_,_) ns p q  =
              q' <-IdSubLTS.oneIn ns' (sigmaSubs q) lp
              return . (and :: [Bool] -> Bool) $ sim2_ ctx' ns p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lp, bp') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -84,7 +88,7 @@ bisim2 ctx ns p q = and $ bisim2_ ctx ns p q
 bisim2_ :: Ctx' -> NmSet -> Pr -> Pr -> [Bool]
 bisim2_ ctx@(nctx,_,_) ns p q  =
        do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns p)
-           (ctx, ns) <- deltaExplode delta (ctx, ns)
+           (ctx, sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lp, p') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
@@ -92,7 +96,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx',ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -102,7 +106,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              q' <-IdSubLTS.oneIn ns (sigmaSubs q) lp
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns' p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lp, bp') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -115,7 +119,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              let ctx' = extend (Nab x') ctx;  ns' = Set.insert x' ns
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns' p' q'
   <|>  do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns q)
-           (ctx, ns) <- deltaExplode delta (ctx, ns)
+           (ctx, sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lq, q') = sigmaSubs r
            return . (or :: [Bool] -> Bool) . runFreshMT $ do
@@ -123,7 +127,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns q)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx',ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -133,7 +137,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
              p' <-IdSubLTS.oneIn ns' (sigmaSubs p) lq
              return . (and :: [Bool] -> Bool) $ bisim2_ ctx' ns' p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns q)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma
            let (lq, bq') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bq'
@@ -150,7 +154,7 @@ bisim2_ ctx@(nctx,_,_) ns p q  =
 sim2' :: Ctx' -> NmSet -> Pr -> Pr -> [Tree (Either StepLog StepLog)]
 sim2' ctx@(nctx,_,_) ns p q  =
        do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lp, p') = sigmaSubs r
            returnL (One nctx ns sigma_ lp p') . runFreshMT $ do
@@ -158,7 +162,7 @@ sim2' ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              returnR (One nctx ns sigma_ lq q') $ sim2' ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx'@(nctx',_,_),ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -168,7 +172,7 @@ sim2' ctx@(nctx,_,_) ns p q  =
              q' <-IdSubLTS.oneIn ns' (sigmaSubs q) lp
              returnR (One nctx' ns' sigma_ lp q') $ sim2' ctx' ns p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lp, bp') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -185,7 +189,7 @@ sim2' ctx@(nctx,_,_) ns p q  =
 bisim2' :: Ctx' -> NmSet -> Pr -> Pr -> [Tree (Either StepLog StepLog)]
 bisim2' ctx@(nctx,_,_) ns p q  =
        do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lp, p') = sigmaSubs r
            returnL (One nctx ns sigma_ lp p') . runFreshMT $ do
@@ -193,7 +197,7 @@ bisim2' ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              returnR (One nctx ns sigma_ lq q') $ bisim2' ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx'@(nctx',_,_),ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -203,7 +207,7 @@ bisim2' ctx@(nctx,_,_) ns p q  =
              q' <-IdSubLTS.oneIn ns' (sigmaSubs q) lp
              returnR (One nctx' ns' sigma_ lp q') $ bisim2' ctx' ns p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns p)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lp, bp') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bp'
@@ -216,7 +220,7 @@ bisim2' ctx@(nctx,_,_) ns p q  =
              let ctx' = extend (Nab x') ctx;  ns' = Set.insert x' ns
              returnR (OneB nctx ns sigma_ lq bq') $ bisim2' ctx' ns' p' q'
   <|>  do  ((sigma,delta), r@(Tau,_)) <- runFreshMT (one_ ctx ns q)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lq, q') = sigmaSubs r
            returnR (One nctx ns sigma_ lq q') . runFreshMT $ do
@@ -224,7 +228,7 @@ bisim2' ctx@(nctx,_,_) ns p q  =
              guard $ lp == lq
              returnL (One nctx ns sigma_ lp p') $ bisim2' ctx ns p' q'
   <|>  do  ((sigma,delta), r@(Dn _ (Var y),_)) <- runFreshMT (one_ ctx ns q)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let (ctx'@(nctx',_,_),ns')
                  | y `elem` (fv nctx :: [Nm]) || Set.member y ns  = (ctx,ns)
                  | otherwise  = (extend (Nab y) ctx, Set.insert y ns)
@@ -234,7 +238,7 @@ bisim2' ctx@(nctx,_,_) ns p q  =
              p' <-IdSubLTS.oneIn ns' (sigmaSubs p) lq
              returnL (One nctx' ns' sigma_ lq p') $ bisim2' ctx' ns p' q'
   <|>  do  ((sigma,delta), r) <- runFreshMT (one_b ctx ns q)
-           (ctx@(nctx,_,_), ns) <- deltaExplode delta (ctx, ns)
+           (ctx@(nctx,_,_), sigma, ns) <- deltaExplode delta (ctx, sigma, ns)
            let sigmaSubs = subs_ ctx sigma;  sigma_ = part2eqc ctx sigma
            let (lq, bq') = sigmaSubs r
            let x' = runFreshM $ freshFrom (fv nctx) bq'
