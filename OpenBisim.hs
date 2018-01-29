@@ -42,8 +42,8 @@ deltaExplode_ ((x,y):delta) (nctx, cs, ns)
     <|> deltaExplode_ delta (diffCtx (y,x) nctx, cs, Set.insert y ns)
     <|> asum [deltaExplode_ delta (nctx, (y,n):cs, ns) | n <- Set.toList ns]
   where
-    -- toNab x nctx = Nab x : filter ((x/=) . quan2nm) nctx
-    diffCtx (x,y) nctx = trace (show $ nctx1 ++ Nab x : nctx2 ) $ nctx1 ++ Nab x : nctx2
+    diffCtx (x,y) nctx = {- trace (show $ nctx1 ++ Nab x : nctx2 ) $ -}
+                         nctx1 ++ Nab x : nctx2
        where (nctx1, nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
 
 sim2 ctx ns p q = and $ sim2_ ctx ns p q
