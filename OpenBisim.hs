@@ -9,6 +9,7 @@ import           Control.Applicative
 import           Control.Monad
 import qualified Data.Set                as Set
 import           Data.Tree
+import           Debug.Trace
 import qualified IdSubLTS
 import           MemoUgly
 import           OpenLTS                 hiding (one, oneb)
@@ -38,8 +39,8 @@ deltaExplode_ ((x,y):delta) (nctx, ns)
             <|> pure (diffCtx (y,x) nctx, Set.insert y ns)
   where
     -- toNab x nctx = Nab x : filter ((x/=) . quan2nm) nctx
-    diffCtx (x,y) nctx = nctx1 ++ Nab x : nctx2
-       where (nctx1, nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
+    diffCtx (x,y) nctx = trace (show $ nctx1 ++ Nab x : nctx2 ) $ nctx1 ++ Nab x : nctx2
+       where (nctx1, All _ : nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
 
 sim2 ctx ns p q = and $ sim2_ ctx ns p q
 
@@ -249,7 +250,6 @@ bisim2' ctx@(nctx,_,_) ns p q  =
 
 
 
-{-
 -- wrapper -----------------------------
 sim nctx = sim2 (toCtx' nctx)
 sim' nctx = sim2' (toCtx' nctx)
@@ -257,6 +257,7 @@ bisim nctx = bisim2 (toCtx' nctx)
 bisim' nctx = bisim2' (toCtx' nctx)
 ----------------------------------------
 
+{-
 sim2 ctx p q = and $ sim2_ ctx p q
 
 sim2_ :: Ctx' -> Pr -> Pr -> [Bool]

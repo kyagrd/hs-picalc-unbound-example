@@ -178,6 +178,9 @@ rrr2 = (x./=y) $ taup $ tau
 rr1 = (x./=y) tau
 rr2 = o
 
+rrrr1 = (x./=y) $ taup $ (x.=z)tau.+(x./=z)tau
+rrrr2 = (x./=y) $ taup $ (y.=z)tau.+(y./=z)tau
+
 
 {-
 axay = reverse [All x, All y]
