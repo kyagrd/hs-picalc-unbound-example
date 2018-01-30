@@ -178,8 +178,18 @@ rrr2 = (x./=y) $ taup $ tau
 rr1 = (x./=y) tau
 rr2 = o
 
+
+rr1' = (x./=y) $ (z./=w) tau
+rr2' = o
+rr3' = tau
+
+
+
 rrrr1 = (x./=y) $ taup $ (x.=z)tau.+(x./=z)tau
 rrrr2 = (x./=y) $ taup $ (y.=z)tau.+(y./=z)tau
+
+rr11 = ((x./=y) $ taup tau) .+ ((x./=y) $ (x./=z) tau)
+rr22 = (x./=y) $ tau
 
 
 {-
