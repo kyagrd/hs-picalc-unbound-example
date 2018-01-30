@@ -177,6 +177,7 @@ rrr2 = (x./=y) $ taup $ tau
 
 rr1 = (x./=y) tau
 rr2 = o
+rr3 = tau
 
 
 rr1' = (x./=y) $ (z./=w) tau

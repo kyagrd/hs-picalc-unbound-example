@@ -26,8 +26,9 @@ data Act   = Up Tm Tm | Dn Tm Tm | Tau     deriving (Eq, Ord, Show)
 data ActB  = UpB Tm   {- | DnB Tm -}  deriving (Eq, Ord, Show)
 
 data Form  = FF | TT | Conj [Form] | Disj [Form]
-           | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form
-           | Box  Act Form  |  BoxB  ActB FormB   | BoxMatch [(Tm,Tm)] Form
+           | Dia  Act Form         | Box  Act Form
+           | DiaB  ActB FormB      | BoxB  ActB FormB
+           | DiaMat [(Tm,Tm)] Form | BoxMat [(Tm,Tm)] Form
            deriving (Eq,Ord,Show)
 type FormB = Bind Nm Form
 instance Eq FormB where (==) = aeqBinders

@@ -30,6 +30,7 @@ freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
 
 deltaExplode delta (ctx@(nctx,_,_), sigma, ns) =
   do (nctx', sigma', ns') <- deltaExplode_ delta (nctx, part2eqc ctx sigma, ns)
+     guard $ respects sigma' nctx' ns'
      return (toCtx' nctx', fst $ mkPartitionFromEqC nctx' sigma', ns')
 
 deltaExplode_ []            (nctx, cs, ns)    = pure (nctx, cs, ns)
@@ -44,7 +45,8 @@ deltaExplode_ ((x,y):delta) (nctx, cs, ns)
   where
     diffCtx (x,y) nctx = {- trace (show $ nctx1 ++ Nab x : nctx2 ) $ -}
                          nctx1 ++ Nab x : nctx2
-       where (nctx1, nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
+       -- where (nctx1, nctx2) = span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
+       where (nctx1, All _ : nctx2) = span ((x/=).quan2nm) nctx -- span ((y/=).quan2nm) $ filter ((x/=) . quan2nm) nctx
 
 sim2 ctx ns p q = and $ sim2_ ctx ns p q
 
@@ -394,19 +396,18 @@ bisim2' ctx@(nctx,_,_) p q =
                              UpB _ -> extend (Nab x') ctx
        returnL (OneB nctx (toEqC sigma) lp bp') $ bisim2' ctx' p' q'
   where toEqC = part2eqc ctx
-
-freshFrom :: Fresh m => [Nm] -> PrB -> m Nm
-freshFrom xs b = do { mapM_ fresh xs; fst <$> unbind b }
+-}
 
 forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)]
 forest2df rs
-            =    do  Node (Left (One _ sigma_p a _)) [] <- rs
+            =    do  Node (Left (One _ ns sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingAct a (right1s rs)
                      return (prebase sigma_p a, postbase sigmaqs a)
-            <|>  do  Node (Right (One _ sigma_q a _)) [] <- rs
+            <|>  do  Node (Right (One _ ns sigma_q a _)) [] <- rs
                      let formR = prebase sigma_q a
                      let sigmaps = subsMatchingAct a (left1s rs)
                      return (postbase sigmaps a, formR)
+                     {-
             <|>  do  Node (Left (OneB _ sigma_p a _)) [] <- rs
                      let sigmaqs = subsMatchingActB a (right1Bs rs)
                      return (preBbase sigma_p a, postBbase sigmaqs a)
@@ -442,6 +443,7 @@ forest2df rs
                      guard . not . null $ dfsL
                      let sigmaps = subsMatchingActB a (left1Bs rs)
                      return (postB sigmaps a x dfsL, preB sigma_q a x dfsR)
+                     -}
   where
     prebase sigma a = pre sigma a []
     postbase sigmas a = post sigmas a []
@@ -451,22 +453,21 @@ forest2df rs
     post sigmas a fs = Box a . disj $  (diaMat<$>sigmas) ++ fs
     preB sigma a x = boxMat sigma . DiaB a . bind x . conj
     postB sigmas a x fs = BoxB a . bind x . disj $  (diaMat<$>sigmas) ++ fs
-    boxMat  [] = id; boxMat  sigma = BoxMatch [(Var x,Var y) | (x,y)<-sigma]
-    diaMat  [] = FF; diaMat  sigma = DiaMatch [(Var x,Var y) | (x,y)<-sigma] TT
+    boxMat  [] = id; boxMat  sigma = BoxMat [(Var x,Var y) | (x,y)<-sigma]
+    diaMat  [] = FF; diaMat  sigma = DiaMat [(Var x,Var y) | (x,y)<-sigma] TT
     right1s  rs = [log | Node (Right  log@One{}) _ <- rs]
     left1s   rs = [log | Node (Left   log@One{}) _ <- rs]
     right1Bs  rs = [log | Node (Right  log@OneB{}) _ <- rs]
     left1Bs   rs = [log | Node (Left   log@OneB{}) _ <- rs]
-    getCtx (One   nctx _ _ _)  = nctx; getCtx (OneB  nctx _ _ _) = nctx
+    getCtx (One   nctx _ _ _ _)  = nctx; getCtx (OneB  nctx _ _ _ _) = nctx
     fromEither (Left   t) = t; fromEither (Right  t) = t
 
 subsMatchingAct :: Act -> [StepLog] -> [EqC]
 subsMatchingAct a logs =
-  do  One nctx sigma a' _ <-logs          ;  let sigmaSubs = subs nctx sigma
+  do  One nctx ns sigma a' _ <-logs       ;  let sigmaSubs = subs nctx sigma
       guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
 
 subsMatchingActB :: ActB -> [StepLog] -> [EqC]
 subsMatchingActB a logs =
-  do  OneB nctx sigma a' _ <-logs         ;  let sigmaSubs = subs nctx sigma
+  do  OneB nctx ns sigma a' _ <-logs      ;  let sigmaSubs = subs nctx sigma
       guard $ sigmaSubs a == sigmaSubs a' ;  return sigma
--}
