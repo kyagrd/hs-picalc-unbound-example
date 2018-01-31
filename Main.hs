@@ -44,6 +44,8 @@ instance Pretty Tm where
 instance Pretty Act where
   pPrintPrec l r (Up x y) = maybeParens (r > appPrec) $ text "Up" <+> ppp x <+> ppp y
     where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (Dn x y) = maybeParens (r > appPrec) $ text "Dn" <+> ppp x <+> ppp y
+    where ppp = pPrintPrec l (appPrec+1)
   pPrintPrec l r Tau = text "Tau"
 instance Pretty ActB where
   pPrintPrec l r (UpB x) = maybeParens (r > appPrec) $ text "UpB" <+> ppp x
@@ -79,7 +81,7 @@ instance Pretty Pr where
   pPrintPrec l r (Diff x y p) = maybeParens (r > appPrec) $
             text "Diff" <+> ppp x <+> ppp y <+> ppp p
     where ppp = pPrintPrec l (appPrec+1)
-{-
+
 instance Pretty Form where
   pPrintPrec _ _ FF = text "FF"
   pPrintPrec _ _ TT = text "TT"
@@ -101,20 +103,27 @@ instance Pretty Form where
   pPrintPrec l r (DiaB a f) = maybeParens (r > appPrec) $
             text "DiaB" <+> ppp a <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (BoxMatch sigma f) = maybeParens (r > appPrec) $
-            text "BoxMatch" <+> ppp sigma <+> ppp f
+  pPrintPrec l r (BoxMat sigma f) = maybeParens (r > appPrec) $
+            text "BoxMat" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (DiaMatch sigma f) = maybeParens (r > appPrec) $
-            text "DiaMatch" <+> ppp sigma <+> ppp f
+  pPrintPrec l r (DiaMat sigma f) = maybeParens (r > appPrec) $
+            text "DiaMat" <+> ppp sigma <+> ppp f
     where ppp = pPrintPrec l (appPrec+1)
--}
+  pPrintPrec l r (BoxDif delta f) = maybeParens (r > appPrec) $
+            text "BoxDif" <+> ppp delta <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+  pPrintPrec l r (DiaDif delta f) = maybeParens (r > appPrec) $
+            text "DiaDif" <+> ppp delta <+> ppp f
+    where ppp = pPrintPrec l (appPrec+1)
+
+
 
 instance Pretty StepLog where
-  pPrintPrec l r (One  nctx ns sigma a p) = maybeParens (r > appPrec) $
-            text "One" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma <+> ppp a <+> ppp p
+  pPrintPrec l r (One  nctx ns sigma_d sd a p) = maybeParens (r > appPrec) $
+            text "One" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma_d <+> ppp sd <+> ppp a <+> ppp p
     where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (OneB nctx ns sigma a b) = maybeParens (r > appPrec) $
-            text "OneB" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma <+> ppp a <+> ppp b
+  pPrintPrec l r (OneB nctx ns sigma_d sd a b) = maybeParens (r > appPrec) $
+            text "OneB" <+> ppp nctx <+> ppp(Set.toList ns) <+> ppp sigma_d <+> ppp sd <+> ppp a <+> ppp b
     where ppp = pPrintPrec l (appPrec+1)
 
 
@@ -183,7 +192,6 @@ rr3 = tau
 rr1' = (x./=y) $ (z./=w) tau
 rr2' = o
 rr3' = tau
-
 
 
 rrrr1 = (x./=y) $ taup $ (x.=z)tau.+(x./=z)tau

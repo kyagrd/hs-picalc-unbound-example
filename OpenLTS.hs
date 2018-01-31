@@ -72,18 +72,21 @@ extend q (nctx, n, n2iMap) = (q:nctx, n+1, insert (quan2nm q) (n+1) n2iMap)
 
 respects :: EqC -> Ctx -> NmSet -> Bool
 respects sigma nctx ns =
-  all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  -- all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  and [P.rep part (n2i x) /= P.rep part (n2i y) | x<-Set.toList ns, y<-Set.toList ns, x/=y]
   where (part, (n2i, i2n)) = mkPartitionFromEqC nctx sigma
 
 respects' :: EqC -> Ctx' -> NmSet -> Bool
 respects' sigma ctx@(nctx,_,n2iMap) ns =
-  all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
-  where (part,(n2i,i2n)) = mkPartitionFromEqC' ctx sigma
+  -- all (\n -> P.rep part n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  and [P.rep part (n2i x) /= P.rep part (n2i y) | x<-Set.toList ns, y<-Set.toList ns, x/=y]
+  where (part, (n2i,i2n)) = mkPartitionFromEqC' ctx sigma
 
 respects_ :: EqC' -> Ctx' -> NmSet -> Bool
 respects_ sigma ctx@(nctx,_,n2iMap) ns =
-  all (\n -> P.rep sigma n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
-  where (n2i,i2n) = mkMapFunsFromEqC' ctx sigma
+  -- all (\n -> P.rep sigma n == n && Set.member (i2n n) ns) [n2i x | Nab x <- nctx]
+  and [P.rep part (n2i x) /= P.rep part (n2i y) | x<-Set.toList ns, y<-Set.toList ns, x/=y]
+  where (part, (n2i,i2n)) = (sigma, mkMapFunsFromEqC' ctx sigma)
 
 subs :: Subst Tm b => Ctx -> EqC -> b -> b
 subs nctx sigma = substs [(x,Var y) | (x,y)<-sigma']
@@ -148,7 +151,9 @@ one_ ctx ns pp@(Match (Var x) (Var y) p)
           return ((sigma',delta), r)
 one_ ctx ns (Diff (Var x) (Var y) p)
   | x == y   = empty
-  | Set.member x ns || Set.member y ns  = one_ ctx ns p
+  | Set.member x ns || Set.member y ns  =
+                 do  ((sigma,delta), r) <- one_ ctx ns p
+                     return ((sigma,(x,y):delta),r)
   | otherwise =  do  ((sigma,delta), r) <- one_ ctx ns p
                      let sigmaSubs = subs_ ctx sigma;  delta' = (x,y):delta
                      guard $ all (uncurry (/=)) (sigmaSubs $ eqcVars delta')
@@ -187,6 +192,7 @@ one_ ctx ns (Nu b) =
   do  (x,p) <- unbind b
       let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
       ((sigma,delta),(l,p')) <- one_ ctx' ns' p
+      guard . not $ x `elem` (fv $ part2eqc ctx' sigma :: [Nm])
       let sigmaSubs = subs_ ctx' sigma
       case l of  Up x' y  | Var x == sigmaSubs x'  -> empty
                           | Var x == sigmaSubs y   -> empty
@@ -206,7 +212,9 @@ one_b ctx ns (Match (Var x) (Var y) p)
           return ((sigma',delta), r)
 one_b ctx ns (Diff (Var x) (Var y) p)
   | x == y  = empty
-  | Set.member x ns || Set.member y ns  = one_b ctx ns p
+  | Set.member x ns || Set.member y ns  =
+                 do  ((sigma,delta), r) <- one_b ctx ns p
+                     return ((sigma,(x,y):delta),r)
   | otherwise =  do  ((sigma,delta), r) <- one_b ctx ns p
                      let sigmaSubs = subs_ ctx sigma;  delta' = (x,y):delta
                      guard $ all (uncurry (/=)) (sigmaSubs delta')
@@ -247,7 +255,9 @@ one_In ctx ns (Match (Var x) (Var y) p) l@(Dn _ _)
           return ((sigma',delta), r)
 one_In ctx ns (Diff (Var x) (Var y) p) l@(Dn _ _)
   | x == y  = empty
-  | Set.member x ns || Set.member y ns  = one_In ctx ns p l
+  | Set.member x ns || Set.member y ns  =
+                 do  ((sigma,delta), r) <- one_In ctx ns p l
+                     return ((sigma,(x,y):delta),r)
   | otherwise =  do  ((sigma,delta), r) <- one_In ctx ns p l
                      let sigmaSubs = subs_ ctx sigma
                      guard $ sigmaSubs (Var x) /= sigmaSubs (Var y)
@@ -259,6 +269,7 @@ one_In ctx ns (Par p q) l@(Dn _ _) =
 one_In ctx ns (Nu b) l@(Dn _ _) =
   do  (x,p) <- unbind b
       let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
-      (sd, p') <- one_In ctx' ns' p l
+      (sd@(sigma,_), p') <- one_In ctx' ns' p l
+      guard . not $ x `elem` (fv $ part2eqc ctx' sigma :: [Nm])
       return (sd, Nu(x.\p'))
 one_In _  _ _ _ = empty

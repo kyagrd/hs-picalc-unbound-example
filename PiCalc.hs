@@ -29,6 +29,7 @@ data Form  = FF | TT | Conj [Form] | Disj [Form]
            | Dia  Act Form         | Box  Act Form
            | DiaB  ActB FormB      | BoxB  ActB FormB
            | DiaMat [(Tm,Tm)] Form | BoxMat [(Tm,Tm)] Form
+           | DiaDif [(Tm,Tm)] Form | BoxDif [(Tm,Tm)] Form
            deriving (Eq,Ord,Show)
 type FormB = Bind Nm Form
 instance Eq FormB where (==) = aeqBinders
