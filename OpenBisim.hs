@@ -410,23 +410,27 @@ bisim2' ctx@(nctx,_,_) p q =
 
 forest2df :: [Tree (Either StepLog StepLog)] -> [(Form,Form)]
 forest2df rs
-            =    do  rsL@(Node (Left (One _ _ _ sd a _)) [] : _) <- groupL1sBySdA rs
-                     guard $ all (\(Node _ rs) -> null rs) rsL
+            =    do  rsL <- groupL1sBySdA rs
+                     -- guard $ all (\(Node _ rs) -> null rs) rsL
+                     Node (Left (One _ _ _ sd a _)) [] <- rsL
                      let formL = prebase sd a
                      let sd_qs = sdMatchingAct a (right1s rs)
                      return (formL, postbase sd_qs a)
-            <|>  do  rsR@(Node (Right (One _ _ _ sd a _)) [] : _) <- groupR1sBySdA rs
-                     guard $ all (\(Node _ rs) -> null rs) rsR
+            <|>  do  rsR <- groupR1sBySdA rs
+                     -- guard $ all (\(Node _ rs) -> null rs) rsR
+                     Node (Right (One _ _ _ sd a _)) [] <- rsR
                      let formR = prebase sd a
                      let sd_ps = sdMatchingAct a (left1s rs)
                      return (postbase sd_ps a, formR)
-            <|>  do  rsL@(Node (Left (OneB _ _ _ sd a _)) [] : _) <- groupL1sBySdA rs
-                     guard $ all (\(Node _ rs) -> null rs) rsL
+            <|>  do  rsL <- groupL1BsBySdA rs
+                     -- guard $ all (\(Node _ rs) -> null rs) rsL
+                     Node (Left (OneB _ _ _ sd a _)) [] <- rsL
                      let formL = preBbase sd a
                      let sd_qs = sdMatchingActB a (right1Bs rs)
                      return (formL, postBbase sd_qs a)
-            <|>  do  rsR@(Node (Right (OneB _ _ _ sd a _)) [] : _) <- groupR1sBySdA rs
-                     guard $ all (\(Node _ rs) -> null rs) rsR
+            <|>  do  rsR <- groupR1BsBySdA rs
+                     -- guard $ all (\(Node _ rs) -> null rs) rsR
+                     Node (Right (OneB _ _ _ sd a _)) [] <- rsR
                      let formR = preBbase sd a
                      let sd_ps = sdMatchingActB a (left1Bs rs)
                      return (postBbase sd_ps a, formR)
@@ -441,7 +445,7 @@ forest2df rs
                      Node (Right (One _ _ _ sd a _)) rsL <- rsR
                      let rss' = [rs' | Node _ rs' <- rsL]
                      (dfsL,dfsR) <- unzip <$> sequence (forest2df <$> rss')
-                     guard . not . null $ dfsL
+                     guard . not . null $ dfsR
                      let sd_ps = sdMatchingAct a (left1s rs)
                      return (post sd_ps a dfsL, pre sd a dfsR)
                      {-

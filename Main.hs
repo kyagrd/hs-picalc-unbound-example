@@ -153,9 +153,9 @@ True
 
 a = s2n "a" :: Nm
 k = s2n "k" :: Nm
+
 pp1 = nu$k.\ out a k ((inp a$x.\o).+(inp a$x.\tau))
 pp2 = nu$k.\ out a k ((inp a$x.\o).+(inp a$x.\tau).+(inp a$x.\(x.=k)tau))
-
 
 pp1' = nu$k.\ {- out a k -} ((inp a$x.\o).+(inp a$x.\tau))
 pp2' = nu$k.\ {- out a k -} ((inp a$x.\o).+(inp a$x.\tau).+(inp a$x.\(x.=k)tau))
@@ -182,7 +182,7 @@ qqqq3' = nu$k.\ {- out a k -} (inp a$x.\ (x./=k)tau)
 qqqq4' = nu$k.\ {- out a k -} (inp a$x.\ (x.=k)tau .+ (x./=k)tau)
 
 rrr1 = (x./=y) $ taup $ ((x.=z)tau.+(x./=z)tau) .+ ((y.=z)tau.+(y./=z)tau)
-rrr2 = (x./=y) $ taup $ tau
+rrr2 = (x./=y) $ taup tau
 
 rr1 = (x./=y) tau
 rr2 = o
@@ -197,8 +197,8 @@ rr3' = tau
 rrrr1 = (x./=y) $ taup $ (x.=z)tau.+(x./=z)tau
 rrrr2 = (x./=y) $ taup $ (y.=z)tau.+(y./=z)tau
 
-rr11 = ((x./=y) $ taup tau) .+ ((x./=y) $ (x./=z) tau)
-rr22 = (x./=y) $ tau
+rr11 = (x./=y) (taup tau) .+ (x./=y) ((x./=z) tau)
+rr22 = (x./=y) tau
 
 
 {-
