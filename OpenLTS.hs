@@ -148,12 +148,12 @@ one_ ctx ns pp@(Match (Var x) (Var y) p)
       do  ((sigma,delta), r) <- one_ ctx ns p
           let sigma' = joinNm ctx (x,y) sigma;  sigmaSubs' = subs_ ctx sigma'
           guard $ all (uncurry (/=)) (sigmaSubs' $ eqcVars delta)
-          return ((sigma',delta), r)
+          return ((sigma',delta), sigmaSubs' r)
 one_ ctx ns (Diff (Var x) (Var y) p)
   | x == y   = empty
   | Set.member x ns || Set.member y ns  =
                  do  ((sigma,delta), r) <- one_ ctx ns p
-                     return ((sigma,(x,y):delta),r)
+                     return ((sigma,(x,y):delta), r)
   | otherwise =  do  ((sigma,delta), r) <- one_ ctx ns p
                      let sigmaSubs = subs_ ctx sigma;  delta' = (x,y):delta
                      guard $ all (uncurry (/=)) (sigmaSubs $ eqcVars delta')
@@ -208,8 +208,8 @@ one_b ctx ns (Match (Var x) (Var y) p)
   | respects' [(x,y)] ctx ns =
       do  ((sigma,delta), r) <- one_b ctx ns p
           let sigma' = joinNm ctx (x,y) sigma;  sigmaSubs' = subs_ ctx sigma'
-          guard $ all (uncurry (/=)) (sigmaSubs' delta)
-          return ((sigma',delta), r)
+          guard $ all (uncurry (/=)) (sigmaSubs' $ eqcVars delta)
+          return ((sigma',delta), sigmaSubs' r)
 one_b ctx ns (Diff (Var x) (Var y) p)
   | x == y  = empty
   | Set.member x ns || Set.member y ns  =
@@ -217,8 +217,7 @@ one_b ctx ns (Diff (Var x) (Var y) p)
                      return ((sigma,(x,y):delta),r)
   | otherwise =  do  ((sigma,delta), r) <- one_b ctx ns p
                      let sigmaSubs = subs_ ctx sigma;  delta' = (x,y):delta
-                     guard $ all (uncurry (/=)) (sigmaSubs delta')
-                     guard $ sigmaSubs x /= sigmaSubs y
+                     guard $ all (uncurry (/=)) (sigmaSubs $ eqcVars delta')
                      return ((sigma,delta'), r)
 one_b ctx ns (Plus p q) = one_b ctx ns p <|> one_b ctx ns q
 one_b ctx ns (Par p q) =
@@ -251,7 +250,7 @@ one_In ctx ns (Match (Var x) (Var y) p) l@(Dn _ _)
   | respects' [(x,y)] ctx ns =
       do  ((sigma,delta), r) <- one_In ctx ns p l
           let sigma' = joinNm ctx (x,y) sigma;  sigmaSubs' = subs_ ctx sigma'
-          guard $ all (uncurry (/=)) (sigmaSubs' delta)
+          guard $ all (uncurry (/=)) (sigmaSubs' $ eqcVars delta)
           return ((sigma',delta), r)
 one_In ctx ns (Diff (Var x) (Var y) p) l@(Dn _ _)
   | x == y  = empty
