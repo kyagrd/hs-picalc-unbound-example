@@ -36,16 +36,7 @@ infixr 5 .++
 (.++) = union
 -}
 
-type Ctx = [Quan]
-data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show)
-quan2nm :: Quan -> Nm
-quan2nm (All x) = x
-quan2nm (Nab x) = x
-
-$(derive [''Quan])
-instance Alpha Quan
-instance Subst Tm Quan
-
+type Ctx = [Nm]
 
 -- wrapper -------------------
 one nctx ns p = do ((sigma,delta), r) <- one_ ctx ns p
@@ -67,8 +58,8 @@ toCtx' nctx = (nctx, maxVal, n2iMap)
     n2iMap = fromList $ zip revns [0..maxVal]
     maxVal = length nctx - 1
 
-extend :: Quan -> Ctx' -> Ctx'
-extend q (nctx, n, n2iMap) = (q:nctx, n+1, insert (quan2nm q) (n+1) n2iMap)
+extend :: Nm -> Ctx' -> Ctx'
+extend q (nctx, n, n2iMap) = (q:nctx, n+1, insert q (n+1) n2iMap)
 
 respects :: EqC -> Ctx -> NmSet -> Bool
 respects sigma nctx ns =
@@ -113,7 +104,7 @@ mkPartitionFromEqC' :: Ctx' -> EqC -> (Partition Int, (Nm -> Int, Int -> Nm))
 mkPartitionFromEqC' (nctx,maxVal,n2iMap) sigma = (part, (n2i, i2n))
   where
     part =  foldr (.) id [joinElems (n2i x) (n2i y) | (x,y) <- sigma] discrete
-    i2n i = quan2nm $ nctx !! (maxVal - i)
+    i2n i = nctx !! (maxVal - i)
     n2i x = n2iMap ! x
 
 joinNm ctx (x,y) sigma = joinElems (n2i x) (n2i y) sigma
@@ -124,7 +115,7 @@ joinParts sigma_p sigma_q = fromSets $ nontrivialSets sigma_p ++ nontrivialSets 
 mkMapFunsFromEqC' :: Ctx' -> EqC' -> (Nm -> Int, Int -> Nm)
 mkMapFunsFromEqC' (nctx,maxVal,n2iMap) sigma = (n2i, i2n)
   where
-    i2n i = quan2nm $ nctx !! (maxVal - i)
+    i2n i = nctx !! (maxVal - i)
     n2i x = n2iMap ! x
 
 part2eqc :: Ctx' -> EqC' -> EqC
@@ -190,7 +181,7 @@ one_ ctx ns (Par p q)
            return ((sigma',delta), (Tau, Par (subst y v p') q')) -- interaction
 one_ ctx ns (Nu b) =
   do  (x,p) <- unbind b
-      let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
+      let ctx' = extend x ctx;  ns' = Set.insert x ns
       ((sigma,delta),(l,p')) <- one_ ctx' ns' p
       guard . not $ x `elem` (fv $ part2eqc ctx' sigma :: [Nm])
       let sigmaSubs = subs_ ctx' sigma
@@ -224,13 +215,13 @@ one_b ctx ns (Par p q) =
        do (sd,(l,(x,p'))) <- one_b' ctx ns p;  return (sd,(l, x.\Par p' q))
   <|>  do (sd,(l,(x,q'))) <- one_b' ctx ns q;  return (sd,(l, x.\Par p q'))
 one_b ctx ns (Nu b) =
-       do  (x,p) <- unbind b;                       let ctx' = extend (Nab x) ctx
+       do  (x,p) <- unbind b;                       let ctx' = extend x ctx
            ((sigma,delta),(l@(UpB(Var x')),(y,p'))) <- one_b' ctx' ns p
            let sigmaSubs = subs_ ctx' sigma
            guard $ x /= sigmaSubs x'
            return ((sigma,delta), (l, y.\Nu (x.\p')))
   <|>  do  (x,p) <- unbind b
-           let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
+           let ctx' = extend x ctx;  ns' = Set.insert x ns
            ((sigma,delta),(Up y (Var x'),p')) <- one_ ctx' ns' p
            let sigmaSubs = subs_ ctx' sigma
            guard $ x == sigmaSubs x' && Var x /= sigmaSubs y
@@ -267,7 +258,7 @@ one_In ctx ns (Par p q) l@(Dn _ _) =
   <|>  do (sd, q') <- one_In ctx ns q l;  return (sd, Par p q')
 one_In ctx ns (Nu b) l@(Dn _ _) =
   do  (x,p) <- unbind b
-      let ctx' = extend (Nab x) ctx;  ns' = Set.insert x ns
+      let ctx' = extend x ctx;  ns' = Set.insert x ns
       (sd@(sigma,_), p') <- one_In ctx' ns' p l
       guard . not $ x `elem` (fv $ part2eqc ctx' sigma :: [Nm])
       return (sd, Nu(x.\p'))

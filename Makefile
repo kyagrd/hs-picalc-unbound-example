@@ -32,4 +32,3 @@ FigOpenLTS.tex: OpenLTS.lhs mylhs2tex.sty
 
 OpenBisim.tex: OpenBisim.lhs discuss.lhs mylhs2tex.sty
 	$(LHS2TEX) --poly -o $@ $<
-

@@ -1,5 +1,7 @@
 # hs-picalc-unbound-example
 
+TODO say something about quasi branch
+
 This program implements open bisimiulation of the pi-calculus processes and automatic generation of their disginguishing formulae in the modal logic OM.
 
 ## To build the project
@@ -114,11 +116,11 @@ forall y1 x, sat (plus (taup (taup z)) (taup z)) (diaAct tau (diaAct tau tt)).
 forall y1 x, sat (plus (taup (taup z)) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
 *Main> putStrLn . runFreshM $ do (xs,p,f)<-unbind2' bp2 bf1; proc<-pr2bdw p; form<-form2bdw f; return $ "forall "++concat(Data.List.intersperse " " $ map show xs)++", sat "++proc++" "++form++"."
 forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (diaAct tau (diaAct tau tt)).
-*Main> 
+*Main>
 ```
 The generated proposition (`forall y1 x, ...`) can be checked using Bedwyr as follows:
 ```
-~/github/kyagrd/NonBisim2DF/pic$ rlwrap ./bedwyr pi_modal.def 
+~/github/kyagrd/NonBisim2DF/pic$ rlwrap ./bedwyr pi_modal.def
 [Warning] Now including "pi_modal.def".
 [Warning] Now including "pi.def".
 ...
@@ -128,11 +130,11 @@ For a little help, type "#help."
 
 ?= forall y1 x, sat (plus (taup (taup z)) (taup z)) (diaAct tau (diaAct tau tt)).
 Found a solution.
-More [y] ? 
+More [y] ?
 No more solutions (found 1).
 ?= forall y1 x, sat (plus (match x y1 (taup (taup z))) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
 Found a solution.
-More [y] ? 
+More [y] ?
 No more solutions (found 1).
 ?= forall y1 x, sat (plus (taup (taup z)) (taup z)) (boxAct tau (disj (diaMatch x  y1 tt) (boxAct tau ff))).
 No solution.
@@ -175,8 +177,8 @@ it :: Bool
 True
 it :: Bool
 (7.29 secs, 13,606,563,728 bytes)
-*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> 
-*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> 
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt>
+*Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt>
 *Main IdSubLTS MemoUgly OpenBisim OpenLTS PiCalc SubstLatt> let n=100 in bisim [] (foldl1 Plus (replicate n tau)) (foldr1 Plus (replicate n tau))
 True
 it :: Bool
@@ -220,28 +222,28 @@ For a little help, type "#help."
 + 929ms
 Found a solution:
  N = 100
-More [y] ? 
+More [y] ?
 + 2ms
 No more solutions (found 1).
 ?= N = 250 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 8123ms
 Found a solution:
  N = 250
-More [y] ? 
+More [y] ?
 + 16ms
 No more solutions (found 1).
 ?= N = 100 /\ exists P Q, getL N P /\ getR N Q /\ bisim P Q.
 + 889ms
 Found a solution:
  N = 100
-More [y] ? 
+More [y] ?
 + 2ms
 No more solutions (found 1).
 ?= N = 250 /\ exists P Q, getL N P /\ getR N Q /\ bisim P Q.
 + 8352ms
 Found a solution:
  N = 250
-More [y] ? 
+More [y] ?
 + 25ms
 No more solutions (found 1).
 ```
@@ -317,42 +319,42 @@ For a little help, type "#help."
 + 399ms
 Found a solution:
  N = 5
-More [y] ? 
+More [y] ?
 + 1ms
 No more solutions (found 1).
 ?= N = 6 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 1277ms
 Found a solution:
  N = 6
-More [y] ? 
+More [y] ?
 + 1ms
 No more solutions (found 1).
 ?= N = 7 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 4293ms
 Found a solution:
  N = 7
-More [y] ? 
+More [y] ?
 + 7ms
 No more solutions (found 1).
 ?= N = 8 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 14714ms
 Found a solution:
  N = 8
-More [y] ? 
+More [y] ?
 + 23ms
 No more solutions (found 1).
 ?= N = 9 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 49396ms
 Found a solution:
  N = 9
-More [y] ? 
+More [y] ?
 + 75ms
 No more solutions (found 1).
 ?= N = 10 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 + 161222ms
 Found a solution:
  N = 10
-More [y] ? 
+More [y] ?
 + 224ms
 No more solutions (found 1).
 ?= N = 11 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.

@@ -32,12 +32,6 @@ pp = print . pPrint
 
 instance Pretty Nm where pPrint = text . show
 
-instance Pretty Quan where
-  pPrintPrec l r (All x) = maybeParens (r > appPrec) $ text "All" <+> ppp x
-    where ppp = pPrintPrec l (appPrec+1)
-  pPrintPrec l r (Nab x) = maybeParens (r > appPrec) $ text "Nab" <+> ppp x
-    where ppp = pPrintPrec l (appPrec+1)
-
 instance Pretty Tm where
   pPrintPrec l r (Var x) = maybeParens (r > appPrec) $ text "Var" <+> ppp x
     where ppp = pPrintPrec l (appPrec+1)
