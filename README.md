@@ -2,9 +2,8 @@
 
 TODO say something about quasi branch
 
-<!-- below are description for open bisim change it to quasi
 
-This program implements open bisimiulation of the pi-calculus processes and automatic generation of their disginguishing formulae in the modal logic OM.
+This program implements quasi-open bisimiulation of the pi-calculus processes with mismatch and automatic generation of their disginguishing formulae in the modal logic FM. Make sure that you have switch to `quasi` branch of the repositroy because it is not the main branch.
 
 ## To build the project
 
@@ -32,6 +31,7 @@ After that ``stack build`` is enogh to build after editing the source code.
 When the build is successful you can either ``stack run`` to execute the program
 or ``stack repl`` to load the program into an interactive enivronment (ghci).
 
+<!-- TODO below are main brach open bisim description. TODO run some quasi cases
 
 ## Running the motivating example in the paper with `ghci`
 
