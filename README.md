@@ -2,6 +2,8 @@
 
 TODO say something about quasi branch
 
+<!-- below are description for open bisim change it to quasi
+
 This program implements open bisimiulation of the pi-calculus processes and automatic generation of their disginguishing formulae in the modal logic OM.
 
 ## To build the project
@@ -360,3 +362,4 @@ No more solutions (found 1).
 ?= N = 11 /\ exists P Q, getR N P /\ getL N Q /\ bisim P Q.
 [Error] At line 1, bytes 1-55: User interruption.
 ```
+-->
