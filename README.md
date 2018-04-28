@@ -1,9 +1,6 @@
 # hs-picalc-unbound-example
 
-TODO say something about quasi branch
-
-
-This program implements quasi-open bisimiulation of the pi-calculus processes with mismatch and automatic generation of their disginguishing formulae in the modal logic FM. Make sure that you have switch to `quasi` branch of the repositroy because it is not the main branch.
+This program implements quasi-open bisimiulation of the pi-calculus processes with mismatch and automatic generation of their disginguishing formulae in an intuitionistic varient of the modal logic FM. Make sure that you have switch to `quasi` branch of the repositroy because it is not the main branch.
 
 ## To build the project
 
@@ -14,7 +11,7 @@ on ubuntu by ``sudo apt-get install haskell-stack``.
 After installing stack, make sure that your ``PATH`` environment variable
 includes ``$HOME/.local/bin`` where ``$HOME`` is the path to your home directory.
 To make sure that everything is up to date and also install a basic utility:
-```k
+```
 stack upgrade
 stack install stack-run
 ```
@@ -31,7 +28,7 @@ After that ``stack build`` is enogh to build after editing the source code.
 When the build is successful you can either ``stack run`` to execute the program
 or ``stack repl`` to load the program into an interactive enivronment (ghci).
 
-<!-- TODO below are main brach open bisim description. TODO run some quasi cases
+<!-- TODO below are main brach open bisim description. TODO show some run quasi test cases
 
 ## Running the motivating example in the paper with `ghci`
 
