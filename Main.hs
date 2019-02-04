@@ -8,6 +8,8 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
+import Prelude hiding ((<>))
+
 import qualified Data.Set                       as Set
 import           Data.Tree
 import qualified IdSubLTS                       as IdS
@@ -303,8 +305,6 @@ render1line = renderStyle style{mode=OneLineMode}
 
 toTreeString = foldTree (\log ts -> Node (render1line . pPrint $ log) ts)
 
-foldTree :: (a -> [b] -> b) -> Tree a -> b
-foldTree f = go where go (Node x ts) = f x (map go ts)
 {-
 axayaaab = map All [x,y,a,b]
 a = s2n "a"

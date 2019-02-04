@@ -7,7 +7,7 @@
 
 module IdSubLTS where
 import           Control.Applicative
-import           Control.Applicative.Alternative
+-- import           Control.Applicative.Alternative
 import           Control.Monad
 import qualified Data.Set                        as Set
 import           PiCalc

@@ -9,7 +9,7 @@
 module OpenLTS where
 
 import           Control.Applicative
-import           Control.Applicative.Alternative
+import           Data.Foldable (asum)
 import           Control.Monad
 import           Data.Map.Strict                 (Map (..), fromList, insert,
                                                   (!))

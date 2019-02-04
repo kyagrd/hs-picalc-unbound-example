@@ -6,7 +6,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module OpenBisim where
 import           Control.Applicative
-import           Control.Applicative.Alternative
+import           Data.Foldable (asum)
 import           Control.Monad
 import qualified Data.List                       as List
 import qualified Data.Set                        as Set
