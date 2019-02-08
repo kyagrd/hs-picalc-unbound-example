@@ -140,11 +140,11 @@ p3 = inp x(z.\out x z o) .| out y x o
 -- good that end of p3 example works
 -- TODO confirm this:
 {-
-> OpenBisim.bisim2 (toCtx' [All a]) Set.empty (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
+> OpenBisim.bisim2 (toCtx' [a]) Set.empty (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\(inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
 True
 
-
-> OpenBisim.bisim2 (toCtx' [All a]) Set.empty (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
+> OpenBisim.bisim2 (toCtx' [a]) Set.empty (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((x.=z)tau .+ (x./=z)tau)))) (nu$z.\out a z (inp a$x.\(inp a$y.\(x./=y)((z.=y)tau .+ (z./=y)tau))))
+True
 -}
 
 a = s2n "a" :: Nm
