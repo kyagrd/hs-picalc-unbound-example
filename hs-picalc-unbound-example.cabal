@@ -31,9 +31,7 @@ executable hs-picalc-unbound-example-exe
   other-modules:       PiCalc IdSubLTS OpenLTS OpenBisim SubstLatt MemoUgly
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base >= 4.7 && < 5
---                     , hs-picalc-unbound-example
                      , containers
---                     , monadplus
                      , fgl
                      , graphviz
                      , data-partition
@@ -49,7 +47,6 @@ test-suite hs-picalc-unbound-example-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
---                     , hs-picalc-unbound-example
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
