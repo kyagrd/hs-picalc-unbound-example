@@ -8,6 +8,8 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
+import Prelude hiding ((<>))
+
 import           Data.Tree
 import qualified IdSubLTS                       as IdS
 import           OpenBisim
@@ -226,9 +228,6 @@ showTree = drawTree . toTreeString
 render1line = renderStyle style{mode=OneLineMode}
 
 toTreeString = foldTree (\log ts -> Node (render1line . pPrint $ log) ts)
-
-foldTree :: (a -> [b] -> b) -> Tree a -> b
-foldTree f = go where go (Node x ts) = f x (map go ts)
 
 axayaaab = map All [x,y,a,b]
 a = s2n "a"
