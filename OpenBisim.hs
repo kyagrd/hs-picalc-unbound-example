@@ -6,16 +6,15 @@
 {-# LANGUAGE UndecidableInstances      #-}
 module OpenBisim where
 import           Control.Applicative
+import           Control.Lens.Fold
 import           Control.Monad
 import           Data.Tree
 import qualified IdSubLTS
 import           MemoUgly
 import           OpenLTS                 hiding (one, oneb)
 import           PiCalc
-import           Unbound.LocallyNameless hiding (empty)
+import           Unbound.Generics.LocallyNameless hiding (fv)
 {-# ANN module "HLint: ignore Use mappend" #-}
-
-
 
 data StepLog  =  One   Ctx EqC Act   Pr
               |  OneB  Ctx EqC ActB  PrB  deriving (Eq,Ord,Show)

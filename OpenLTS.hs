@@ -5,17 +5,23 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
+{-# LANGUAGE DeriveGeneric             #-}
 
 module OpenLTS where
+import           GHC.Generics (Generic)
 import           Control.Applicative
+import           Control.Lens.Fold
 import           Control.Monad
 import           Data.Map.Strict         (Map (..), fromList, insert, (!))
 import           Data.Partition          hiding (empty, rep)
 import qualified Data.Partition          as P
 import           PiCalc
-import           Unbound.LocallyNameless hiding (GT, empty)
+import           Unbound.Generics.LocallyNameless hiding (fv)
+import qualified Unbound.Generics.LocallyNameless as U
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use camelCase" #-}
+
+fv = toListOf U.fv
 
 type EqC = [(Nm,Nm)]
 {-
@@ -29,12 +35,11 @@ infixr 5 .++
 -}
 
 type Ctx = [Quan]
-data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show)
+data Quan = All Nm | Nab Nm deriving (Eq, Ord, Show, Generic)
 quan2nm :: Quan -> Nm
 quan2nm (All x) = x
 quan2nm (Nab x) = x
 
-$(derive [''Quan])
 instance Alpha Quan
 instance Subst Tm Quan
 

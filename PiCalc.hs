@@ -3,37 +3,37 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
+{-# LANGUAGE DeriveGeneric             #-}
 {-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
 
 module PiCalc where
+import GHC.Generics (Generic)
 import Data.Maybe
 import Data.List
 import Data.List.Ordered (nubSort)
-import Unbound.LocallyNameless
+import Unbound.Generics.LocallyNameless
 
 type Nm = Name Tm
-newtype Tm = Var Nm deriving (Eq, Ord, Show)
+newtype Tm = Var Nm deriving (Eq, Ord, Show, Generic)
 
 data Pr  = Null | TauP Pr | Out Tm Tm Pr | In Tm PrB | Match Tm Tm Pr
-         | Plus Pr Pr | Par Pr Pr | Nu PrB  deriving (Eq, Ord, Show)
+         | Plus Pr Pr | Par Pr Pr | Nu PrB  deriving (Eq, Ord, Show, Generic)
 type PrB = Bind Nm Pr
-instance Eq PrB where (==) = aeqBinders
+instance Eq PrB where (==) = aeq
 instance Ord PrB where compare = acompare
 
-data Act   = Up Tm Tm  | Tau     deriving (Eq, Ord, Show)
-data ActB  = UpB Tm    | DnB Tm  deriving (Eq, Ord, Show)
+data Act   = Up Tm Tm  | Tau     deriving (Eq, Ord, Show, Generic)
+data ActB  = UpB Tm    | DnB Tm  deriving (Eq, Ord, Show, Generic)
 
 data Form  = FF | TT | Conj [Form] | Disj [Form]
            | Dia  Act Form  |  DiaB  ActB FormB   | DiaMatch [(Tm,Tm)] Form
            | Box  Act Form  |  BoxB  ActB FormB   | BoxMatch [(Tm,Tm)] Form
-           deriving (Eq,Ord,Show)
+           deriving (Eq, Ord, Show, Generic)
 type FormB = Bind Nm Form
-instance Eq FormB where (==) = aeqBinders
+instance Eq FormB where (==) = aeq
 instance Ord FormB where compare = acompare
-
-$(derive [''Tm, ''Act, ''ActB, ''Pr, ''Form])
 
 instance Alpha Tm; instance Alpha Act; instance Alpha ActB
 instance Alpha Pr; instance Alpha Form
@@ -63,7 +63,7 @@ taup = TauP
 nu = Nu
 
 
-
+{- To port these, may need DeriveDataTypeable
 ------------------------------------------------------------------
 -- transformation/reduction of processes via generic programming
 ------------------------------------------------------------------
@@ -102,4 +102,4 @@ everywhere rotateRight $ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
 red $ foldl1 Plus (replicate 3 $ foldl1 Par [Null,Null,Null])
 -}
 
-
+-}

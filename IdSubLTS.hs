@@ -9,7 +9,7 @@ module IdSubLTS where
 import           Control.Applicative
 import           Control.Monad
 import           PiCalc
-import           Unbound.LocallyNameless hiding (empty)
+import           Unbound.Generics.LocallyNameless
 
 one :: (Fresh m, Alternative m) => Pr -> m (Act, Pr)
 one (Out x y p)    = return (Up x y, p)
