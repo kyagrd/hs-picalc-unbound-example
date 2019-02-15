@@ -42,6 +42,7 @@ executable hs-picalc-unbound-example-exe
                      , unbound-generics
                      , pretty
                      , uglymemo
+                     , union-find
   default-language:    Haskell2010
 
 test-suite hs-picalc-unbound-example-test
