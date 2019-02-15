@@ -4,7 +4,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE UndecidableInstances      #-}
-{-# LANGUAGE DeriveGeneric             #-}
 
 module IdSubLTS where
 import           GHC.Generics (Generic)
