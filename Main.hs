@@ -4,7 +4,6 @@
 {-# LANGUAGE MultiParamTypeClasses     #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
--- {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
 module Main where
 
@@ -15,7 +14,6 @@ import qualified IdSubLTS                       as IdS
 import           OpenBisim
 import           OpenLTS
 import           PiCalc
-import           SubstLatt                      (someFunc)
 import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
 import           Unbound.Generics.LocallyNameless
