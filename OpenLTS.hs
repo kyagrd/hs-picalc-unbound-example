@@ -5,9 +5,12 @@
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TemplateHaskell           #-}
 {-# LANGUAGE UndecidableInstances      #-}
+{-# LANGUAGE DeriveGeneric             #-}
 
 module OpenLTS where
 
+import           GHC.Generics
+import           Control.Lens.Fold
 import           Control.Applicative
 import           Data.Foldable (asum)
 import           Control.Monad
@@ -19,9 +22,12 @@ import qualified Data.Set                        as Set
 import           Debug.Trace
 import qualified IdSubLTS
 import           PiCalc
-import           Unbound.LocallyNameless         hiding (GT, empty)
+import           Unbound.Generics.LocallyNameless hiding (fv)
+import qualified Unbound.Generics.LocallyNameless as U
 {-# ANN module "HLint: ignore Use mappend" #-}
 {-# ANN module "HLint: ignore Use camelCase" #-}
+
+fv = toListOf U.fv
 
 type NmSet = Set.Set Nm
 

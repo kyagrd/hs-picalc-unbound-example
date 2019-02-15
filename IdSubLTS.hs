@@ -4,14 +4,16 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE UndecidableInstances      #-}
+{-# LANGUAGE DeriveGeneric             #-}
 
 module IdSubLTS where
+import           GHC.Generics (Generic)
 import           Control.Applicative
 -- import           Control.Applicative.Alternative
 import           Control.Monad
 import qualified Data.Set                        as Set
 import           PiCalc
-import           Unbound.LocallyNameless         hiding (empty)
+import           Unbound.Generics.LocallyNameless
 
 type NmSet = Set.Set Nm
 

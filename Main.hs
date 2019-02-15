@@ -19,7 +19,7 @@ import           PiCalc
 import           SubstLatt                      (someFunc)
 import           Text.PrettyPrint
 import           Text.PrettyPrint.HughesPJClass
-import           Unbound.LocallyNameless
+import           Unbound.Generics.LocallyNameless
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 {-# ANN module "HLint: ignore Use fmap" #-}
